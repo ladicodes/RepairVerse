@@ -69,7 +69,7 @@ components/
   results/           results report
 data/missions.ts     mission content: ticket, hotspots, questions, scoring
 lib/mission-engine.ts  stage machine: transitions, gates, answer locking, saved-state validation
-lib/scoring.ts       100-point deterministic scoring
+lib/scoring.ts       deterministic scoring: start at 100, deduct for mistakes
 store/mission-store.ts persisted run state
 public/models/       Lux3D exports + manifest.json
 ```
@@ -79,8 +79,12 @@ public/models/       Lux3D exports + manifest.json
 Stages: `NOT_STARTED → INTRODUCTION → SAFETY_CHECK → DEVICE_INSPECTION → DIAGNOSIS → REPAIR_DECISION → COMPLETED`.
 
 - A stage advances only when its requirement is met (an answer, or at least 3 inspected parts).
-- The first answer to each question is locked. Repeating an action never adds points.
-- Scoring: safety 20, inspection 4 per unique part (max 20), diagnosis 30, repair 30.
+- The first answer to each question is locked. Repeating an action never changes the score.
+- Scoring starts at 100: safety 20, evidence 20, diagnosis 30, repair 30.
+  - Wrong safety or diagnosis answer: lose that stage's points.
+  - Repair that doesn't fix the fault: lose 20. Repair that makes it worse: lose 30.
+  - Evidence: lose a share of 20 for each fault-relevant part not inspected before diagnosis (3 relevant parts, about 7 each).
+  - Each revealed hint: lose 5 from that stage.
 - Saved progress is validated on load. Malformed or forged state resets to a fresh run.
 - Retry resets the stage and the score.
 

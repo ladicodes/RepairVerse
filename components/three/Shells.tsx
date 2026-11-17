@@ -3,10 +3,12 @@
 import { useEffect, useMemo } from "react";
 import { Instance, Instances, RoundedBox, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
+import { toCreasedNormals } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import type { Vec3 } from "@/data/missions";
 import { makeScreenTexture, type ScreenMode } from "./textures";
 
-export const LID_ANGLE = -0.26;
+export const LID_ANGLE = -0.32;
 
 // HP 15-style layout: full keyboard plus numeric keypad.
 const ROWS: number[][] = [
@@ -83,7 +85,7 @@ function makeLegendTexture(keys: Key[], depth: number) {
   c.height = h;
   const g = c.getContext("2d");
   if (!g) return null;
-  g.fillStyle = "rgba(225,230,238,0.92)";
+  g.fillStyle = "rgba(48,53,61,0.9)";
   g.textAlign = "center";
   g.textBaseline = "middle";
   for (const k of keys) {
@@ -106,11 +108,147 @@ function makeLegendTexture(keys: Key[], depth: number) {
   return t;
 }
 
-const SILVER = { color: "#cdd2d9", metalness: 0.6, roughness: 0.42 } as const;
-const SILVER_DARK = { color: "#a9b0ba", metalness: 0.55, roughness: 0.5 } as const;
+/* ---------- Case geometry ---------- */
+
+function roundedRect(w: number, d: number, r: number) {
+  const s = new THREE.Shape();
+  const x = -w / 2;
+  const y = -d / 2;
+  s.moveTo(x + r, y);
+  s.lineTo(x + w - r, y);
+  s.absarc(x + w - r, y + r, r, -Math.PI / 2, 0, false);
+  s.lineTo(x + w, y + d - r);
+  s.absarc(x + w - r, y + d - r, r, 0, Math.PI / 2, false);
+  s.lineTo(x + r, y + d);
+  s.absarc(x + r, y + d - r, r, Math.PI / 2, Math.PI, false);
+  s.lineTo(x, y + r);
+  s.absarc(x + r, y + r, r, Math.PI, Math.PI * 1.5, false);
+  return s;
+}
 
 /**
- * Temporary procedural laptop shell, styled after an HP 15-inch laptop.
+ * A flat slab with rounded corners in plan and a single diamond-cut chamfer on the
+ * top and bottom edges, like a machined aluminium case. Lies flat: y from 0 to h,
+ * centered on x and z. Normals are smooth around the corners and sharp at the chamfer.
+ */
+function caseSlab(w: number, d: number, h: number, r: number, chamfer: number) {
+  const g = new THREE.ExtrudeGeometry(roundedRect(w - 2 * chamfer, d - 2 * chamfer, Math.max(r - chamfer, 0.002)), {
+    depth: h - 2 * chamfer,
+    bevelEnabled: true,
+    bevelThickness: chamfer,
+    bevelSize: chamfer,
+    bevelSegments: 1,
+    curveSegments: 20,
+  });
+  g.rotateX(-Math.PI / 2);
+  g.translate(0, chamfer, 0);
+  return toCreasedNormals(g, 0.5);
+}
+
+function flatRounded(w: number, d: number, r: number) {
+  const g = new THREE.ShapeGeometry(roundedRect(w, d, r), 16);
+  g.rotateX(-Math.PI / 2);
+  return g;
+}
+
+/* ---------- Brushed aluminium ---------- */
+
+let brushed: { color: THREE.CanvasTexture; rough: THREE.CanvasTexture } | null = null;
+
+/** Fine horizontal grain, shared by every metal part. Created once per page. */
+function brushedTextures() {
+  if (brushed || typeof document === "undefined") return brushed;
+  const c = document.createElement("canvas");
+  c.width = 512;
+  c.height = 512;
+  const g = c.getContext("2d");
+  if (!g) return null;
+  g.fillStyle = "rgb(236,236,236)";
+  g.fillRect(0, 0, 512, 512);
+  // Deterministic grain so every render looks the same.
+  let seed = 7;
+  const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 3200; i++) {
+    const v = 222 + Math.floor(rand() * 33);
+    g.strokeStyle = `rgba(${v},${v},${v},${0.12 + rand() * 0.2})`;
+    g.lineWidth = 1;
+    const y = rand() * 512;
+    const x = rand() * 512;
+    g.beginPath();
+    g.moveTo(x - 300, y);
+    g.lineTo(x + 300, y + (rand() - 0.5));
+    g.stroke();
+  }
+  const make = (srgb: boolean) => {
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(2, 2);
+    t.anisotropy = 8;
+    if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  };
+  brushed = { color: make(true), rough: make(false) };
+  return brushed;
+}
+
+function Aluminium({ tone = "#dde1e6", rough = 0.34, xray }: { tone?: string; rough?: number; xray: boolean }) {
+  const tex = brushedTextures();
+  return (
+    <meshPhysicalMaterial
+      color={tone}
+      map={tex?.color ?? null}
+      roughnessMap={tex?.rough ?? null}
+      metalness={0.92}
+      roughness={rough}
+      clearcoat={0.15}
+      clearcoatRoughness={0.35}
+      transparent={xray}
+      opacity={xray ? 0.1 : 1}
+      depthWrite={!xray}
+    />
+  );
+}
+
+/* ---------- Keycaps ---------- */
+
+/** Keycaps grouped by size so each size is one instanced draw with true rounded corners. */
+function Keycaps({ keys }: { keys: Key[] }) {
+  const groups = useMemo(() => {
+    const m = new Map<string, { w: number; d: number; geo: RoundedBoxGeometry; items: Key[] }>();
+    for (const k of keys) {
+      const id = `${k.w.toFixed(4)}x${k.d.toFixed(4)}`;
+      if (!m.has(id)) m.set(id, { w: k.w, d: k.d, geo: new RoundedBoxGeometry(k.w, KEY_H, k.d, 3, 0.0055), items: [] });
+      m.get(id)!.items.push(k);
+    }
+    return [...m.values()];
+  }, [keys]);
+  useEffect(() => () => groups.forEach((g) => g.geo.dispose()), [groups]);
+
+  return (
+    <>
+      {groups.map((g, gi) => (
+        <Instances key={gi} limit={g.items.length} geometry={g.geo}>
+          <meshPhysicalMaterial color="#d6d9de" roughness={0.55} metalness={0.25} clearcoat={0.1} />
+          {g.items.map((k, i) => (
+            <Instance key={i} position={[k.x, KEY_TOP_Y - KEY_H / 2, k.z]} />
+          ))}
+        </Instances>
+      ))}
+    </>
+  );
+}
+
+/* ---------- Shell ---------- */
+
+const DECK_Y = 0.131;
+const KEY_H = 0.013;
+const BASE = { w: 3.2, d: 2.2, r: 0.11 };
+const LID = { w: 3.2, h: 2.08, t: 0.036, r: 0.1 };
+const SCREEN = { w: 3.02, h: 1.7, y: 1.09 };
+
+/**
+ * Procedural laptop, styled after an HP 15-inch laptop: machined aluminium case,
+ * island keyboard with numeric keypad, glass-covered display with slim bezels.
  * Used only when the Lux3D export is not listed in the model manifest.
  * The UI labels it as a placeholder.
  */
@@ -123,34 +261,43 @@ export function ProceduralShell({ xray, screen }: { xray: boolean; screen: Scree
   const legends = useMemo(() => makeLegendTexture(keys, kbDepth), [keys, kbDepth]);
   useEffect(() => () => legends?.dispose(), [legends]);
 
-  const xr = { transparent: xray, opacity: xray ? 0.1 : 1, depthWrite: !xray };
+  const geo = useMemo(() => {
+    const lid = caseSlab(LID.w, LID.h, LID.t, LID.r, 0.006);
+    // Stand the lid up: plan depth becomes height, thickness faces the user.
+    lid.rotateX(Math.PI / 2);
+    lid.translate(0, LID.h / 2, -LID.t);
+    const glass = new THREE.ShapeGeometry(roundedRect(LID.w - 0.03, LID.h - 0.03, LID.r - 0.015), 16);
+    glass.translate(0, LID.h / 2, 0);
+    return {
+      top: caseSlab(BASE.w, BASE.d, DECK_Y - 0.036, BASE.r, 0.009),
+      bottom: caseSlab(BASE.w - 0.02, BASE.d - 0.02, 0.04, BASE.r - 0.01, 0.008),
+      well: flatRounded(KB_WIDTH + 0.07, kbDepth + 0.06, 0.03),
+      padRim: flatRounded(1.2, 0.72, 0.04),
+      pad: flatRounded(1.18, 0.7, 0.035),
+      lid,
+      glass,
+    };
+  }, [kbDepth]);
+  useEffect(() => () => Object.values(geo).forEach((g) => g.dispose()), [geo]);
 
   return (
     <group>
-      {/* Bottom case (darker) */}
-      <RoundedBox args={[3.18, 0.05, 2.18]} radius={0.024} smoothness={4} position={[0, 0.026, 0]} castShadow receiveShadow>
-        <meshStandardMaterial {...SILVER_DARK} {...xr} />
-      </RoundedBox>
-      {/* Top case */}
-      <RoundedBox args={[3.2, 0.085, 2.2]} radius={0.04} smoothness={5} position={[0, 0.0885, 0]} castShadow receiveShadow>
-        <meshPhysicalMaterial {...SILVER} clearcoat={0.25} clearcoatRoughness={0.4} {...xr} />
-      </RoundedBox>
+      {/* Bottom case: slightly inset, darker anodized shell */}
+      <mesh geometry={geo.bottom} position={[0, 0, 0]} castShadow receiveShadow>
+        <Aluminium tone="#aab0b8" rough={0.48} xray={xray} />
+      </mesh>
+      {/* Top case with diamond-cut edge */}
+      <mesh geometry={geo.top} position={[0, 0.036, 0]} castShadow receiveShadow>
+        <Aluminium xray={xray} />
+      </mesh>
 
       {!xray && (
         <group>
-          {/* Keyboard recess */}
-          <mesh position={[0, 0.1312, KB_TOP_Z + kbDepth / 2 - 0.01]}>
-            <boxGeometry args={[KB_WIDTH + 0.06, 0.001, kbDepth + 0.05]} />
-            <meshStandardMaterial color="#20252e" roughness={0.8} />
+          {/* Keyboard well: shadowed recess in the deck, visible between the keys */}
+          <mesh geometry={geo.well} position={[0, DECK_Y + 0.0004, KB_TOP_Z + kbDepth / 2 - 0.01]}>
+            <meshStandardMaterial color="#6f757d" metalness={0.6} roughness={0.6} />
           </mesh>
-          {/* All keys in one draw call */}
-          <Instances limit={keys.length}>
-            <boxGeometry args={[1, 0.012, 1]} />
-            <meshStandardMaterial color="#15181e" roughness={0.75} metalness={0.05} />
-            {keys.map((k, i) => (
-              <Instance key={i} position={[k.x, KEY_TOP_Y - 0.006, k.z]} scale={[k.w, 1, k.d]} />
-            ))}
-          </Instances>
+          <Keycaps keys={keys} />
           {legends && (
             <mesh position={[0, KEY_TOP_Y + 0.0006, KB_TOP_Z + kbDepth / 2 - 0.01]} rotation={[-Math.PI / 2, 0, 0]}>
               <planeGeometry args={[KB_WIDTH, kbDepth]} />
@@ -158,20 +305,18 @@ export function ProceduralShell({ xray, screen }: { xray: boolean; screen: Scree
             </mesh>
           )}
 
-          {/* Trackpad: flush glass with a thin chamfer */}
-          <mesh position={[MAIN_CENTER_X, 0.1312, 0.56]}>
-            <boxGeometry args={[1.18, 0.001, 0.7]} />
-            <meshStandardMaterial color="#8f97a2" metalness={0.6} roughness={0.35} />
+          {/* Trackpad: polished rim around a fine-matte glass surface */}
+          <mesh geometry={geo.padRim} position={[MAIN_CENTER_X, DECK_Y + 0.0004, 0.56]}>
+            <meshStandardMaterial color="#eef0f3" metalness={1} roughness={0.08} />
           </mesh>
-          <mesh position={[MAIN_CENTER_X, 0.1316, 0.56]}>
-            <boxGeometry args={[1.16, 0.001, 0.68]} />
-            <meshPhysicalMaterial color="#c3c9d1" metalness={0.3} roughness={0.18} clearcoat={0.6} />
+          <mesh geometry={geo.pad} position={[MAIN_CENTER_X, DECK_Y + 0.0008, 0.56]}>
+            <meshPhysicalMaterial color="#d3d7dd" metalness={0.85} roughness={0.42} clearcoat={0.3} clearcoatRoughness={0.4} />
           </mesh>
 
           {/* Front lip notch and status LED */}
           <mesh position={[0, 0.112, 1.101]}>
             <boxGeometry args={[0.5, 0.012, 0.004]} />
-            <meshStandardMaterial color="#8f97a2" metalness={0.6} roughness={0.5} />
+            <meshStandardMaterial color="#8f97a2" metalness={0.8} roughness={0.4} />
           </mesh>
           <mesh position={[-1.35, 0.07, 1.101]}>
             <boxGeometry args={[0.03, 0.008, 0.002]} />
@@ -208,36 +353,44 @@ export function ProceduralShell({ xray, screen }: { xray: boolean; screen: Scree
         </group>
       )}
 
-      {/* Hinge bar */}
-      <mesh position={[0, 0.135, -1.065]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.032, 0.032, 2.7, 24]} />
-        <meshStandardMaterial color="#3a4049" metalness={0.5} roughness={0.45} />
+      {/* Hinge: dark barrel tucked behind the deck, with aluminium end caps */}
+      <mesh position={[0, 0.118, -1.075]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.03, 0.03, 2.5, 32]} />
+        <meshStandardMaterial color="#2b3038" metalness={0.6} roughness={0.45} />
       </mesh>
+      {[-1, 1].map((s) => (
+        <mesh key={s} position={[s * 1.37, 0.118, -1.075]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.032, 0.032, 0.22, 32]} />
+          <Aluminium xray={false} />
+        </mesh>
+      ))}
 
       {/* Lid */}
-      <group position={[0, 0.135, -1.08]} rotation={[LID_ANGLE, 0, 0]}>
-        <RoundedBox args={[3.2, 2.08, 0.045]} radius={0.022} smoothness={4} position={[0, 1.04, -0.024]} castShadow>
-          <meshPhysicalMaterial {...SILVER} clearcoat={0.25} clearcoatRoughness={0.4} />
-        </RoundedBox>
-        {/* Bezel */}
-        <mesh position={[0, 1.04, 0.0002]}>
-          <planeGeometry args={[3.14, 2.02]} />
-          <meshStandardMaterial color="#0a0c10" roughness={0.3} />
+      <group position={[0, 0.118, -1.06]} rotation={[LID_ANGLE, 0, 0]}>
+        <mesh geometry={geo.lid} castShadow>
+          <Aluminium xray={false} />
+        </mesh>
+        {/* Edge-to-edge black glass */}
+        <mesh geometry={geo.glass} position={[0, 0, 0.0004]}>
+          <meshStandardMaterial color="#07080b" roughness={0.25} metalness={0} />
         </mesh>
         {/* Panel */}
-        <mesh position={[0, 1.07, 0.0012]}>
-          <planeGeometry args={[3.02, 1.7]} />
-          {tex ? <meshBasicMaterial map={tex} toneMapped={false} /> : <meshBasicMaterial color="#0a0c10" />}
+        <mesh position={[0, SCREEN.y, 0.0012]}>
+          <planeGeometry args={[SCREEN.w, SCREEN.h]} />
+          {tex ? <meshBasicMaterial map={tex} toneMapped={false} /> : <meshBasicMaterial color="#07080b" />}
         </mesh>
-        {/* Glass: catches environment reflections */}
-        <mesh position={[0, 1.04, 0.003]}>
-          <planeGeometry args={[3.14, 2.02]} />
-          <meshPhysicalMaterial color="#ffffff" transparent opacity={0.06} roughness={0.04} metalness={0} clearcoat={1} depthWrite={false} />
+        {/* Cover glass: picks up softbox reflections across the whole front */}
+        <mesh geometry={geo.glass} position={[0, 0, 0.0024]}>
+          <meshPhysicalMaterial color="#ffffff" transparent opacity={0.08} roughness={0.03} metalness={0} clearcoat={1} depthWrite={false} />
         </mesh>
-        {/* Webcam */}
-        <mesh position={[0, 1.99, 0.0015]}>
-          <circleGeometry args={[0.012, 20]} />
-          <meshStandardMaterial color="#1d2633" roughness={0.1} metalness={0.4} />
+        {/* Webcam with lens ring */}
+        <mesh position={[0, SCREEN.y + SCREEN.h / 2 + 0.06, 0.0016]}>
+          <circleGeometry args={[0.016, 24]} />
+          <meshStandardMaterial color="#141820" roughness={0.2} metalness={0.5} />
+        </mesh>
+        <mesh position={[0, SCREEN.y + SCREEN.h / 2 + 0.06, 0.0018]}>
+          <circleGeometry args={[0.007, 24]} />
+          <meshPhysicalMaterial color="#1b2a44" roughness={0.05} clearcoat={1} />
         </mesh>
       </group>
     </group>

@@ -8,6 +8,8 @@ export interface MissionProgress {
   /** Unique hotspot ids inspected during DEVICE_INSPECTION. */
   inspected: string[];
   answers: Partial<Record<QuestionKind, string>>;
+  /** Questions whose hint was revealed. Each costs `scoring.hintCost`. */
+  hints: QuestionKind[];
   startedAt: number | null;
   completedAt: number | null;
 }
@@ -24,6 +26,7 @@ export function createProgress(missionId: string): MissionProgress {
     stage: "NOT_STARTED",
     inspected: [],
     answers: {},
+    hints: [],
     startedAt: null,
     completedAt: null,
   };
@@ -68,6 +71,14 @@ export function answer(
   if (p.answers[kind] !== undefined) return p;
   if (!mission[kind].choices.some((c) => c.id === choiceId)) return p;
   return { ...p, answers: { ...p.answers, [kind]: choiceId } };
+}
+
+/** Reveals a question's hint once, only while that question is open and unanswered. */
+export function takeHint(p: MissionProgress, mission: Mission, kind: QuestionKind): MissionProgress {
+  if (p.stage !== QUESTION_STAGE[kind]) return p;
+  if (p.answers[kind] !== undefined) return p;
+  if (!mission[kind].hint || p.hints.includes(kind)) return p;
+  return { ...p, hints: [...p.hints, kind] };
 }
 
 export function canAdvance(p: MissionProgress, mission: Mission): boolean {
@@ -128,11 +139,16 @@ export function sanitizeProgress(raw: unknown, mission: Mission): MissionProgres
     if (typeof v === "string" && mission[kind].choices.some((c) => c.id === v)) answers[kind] = v;
   }
 
+  const hints = Array.isArray(r.hints)
+    ? (["safety", "diagnosis", "repair"] as const).filter((k) => r.hints!.includes(k) && Boolean(mission[k].hint))
+    : [];
+
   const p: MissionProgress = {
     missionId: mission.id,
     stage: r.stage,
     inspected,
     answers,
+    hints,
     startedAt: typeof r.startedAt === "number" ? r.startedAt : null,
     completedAt: typeof r.completedAt === "number" ? r.completedAt : null,
   };

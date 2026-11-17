@@ -2,7 +2,8 @@
 
 import { Suspense, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { ContactShadows, Environment, Lightformer } from "@react-three/drei";
+import { ContactShadows } from "@react-three/drei";
+import { Studio } from "@/components/three/Studio";
 import * as THREE from "three";
 import { missions } from "@/data/missions";
 import { LaptopModel } from "@/components/three/LaptopModel";
@@ -48,15 +49,7 @@ export default function HeroScene({ xray = false }: { xray?: boolean }) {
       onCreated={({ camera }) => camera.lookAt(0, 0.55, -0.3)}
       aria-label="3D model of an HP-style laptop reporting a CPU temperature of 96°C"
     >
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[4, 7, 4]} intensity={1.6} />
-      <directionalLight position={[-5, 3, 2]} intensity={0.5} />
-      <Environment resolution={256} frames={1}>
-        <Lightformer form="rect" intensity={2.4} position={[0, 5, -2]} scale={[10, 2, 1]} />
-        <Lightformer form="rect" intensity={1.6} position={[-5, 2, 1]} rotation-y={Math.PI / 2} scale={[6, 2, 1]} />
-        <Lightformer form="rect" intensity={1.2} position={[5, 2, 1]} rotation-y={-Math.PI / 2} scale={[6, 2, 1]} />
-        <Lightformer form="rect" intensity={0.8} position={[0, 1, 6]} scale={[8, 2, 1]} />
-      </Environment>
+      <Studio />
       <Suspense fallback={null}>
         <Rig xray={xray} />
         <ContactShadows position={[0, -0.21, 0]} opacity={0.35} scale={10} blur={2.4} far={3} color="#1b2333" />

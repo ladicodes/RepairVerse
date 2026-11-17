@@ -2,7 +2,8 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState, type ComponentRef } from "react";
 import { Canvas } from "@react-three/fiber";
-import { CameraControls, ContactShadows, Environment, Lightformer, useProgress } from "@react-three/drei";
+import { CameraControls, ContactShadows, useProgress } from "@react-three/drei";
+import { Studio } from "@/components/three/Studio";
 import { Eye, EyeOff, Minus, Plus, RotateCcw } from "lucide-react";
 import clsx from "clsx";
 import type { Hotspot, ModelAsset } from "@/data/missions";
@@ -57,7 +58,7 @@ export default function DeviceViewer(props: DeviceViewerProps) {
         className="absolute! inset-0 touch-none"
         aria-label="Interactive 3D laptop. Drag to rotate, scroll or pinch to zoom."
       >
-        <SceneLights />
+        <Studio />
         <Suspense fallback={null}>
           <LaptopModel asset={asset} status={status} onLoadError={() => setLoadFailed(true)} state={laptop} />
           <ContactShadows position={[0, -0.001, 0]} opacity={0.35} scale={9} blur={2.4} far={3} color="#1b2333" />
@@ -134,22 +135,6 @@ function InitialTarget({ controls }: { controls: React.RefObject<Controls | null
     controls.current?.setLookAt(...HOME.pos, ...HOME.target, false);
   }, [controls]);
   return null;
-}
-
-function SceneLights() {
-  return (
-    <>
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[4, 7, 4]} intensity={1.6} />
-      <directionalLight position={[-5, 3, 2]} intensity={0.5} />
-      <Environment resolution={256} frames={1}>
-        <Lightformer form="rect" intensity={2.2} position={[0, 5, -2]} scale={[10, 2, 1]} color="#ffffff" />
-        <Lightformer form="rect" intensity={1.6} position={[-5, 2, 1]} rotation-y={Math.PI / 2} scale={[6, 2, 1]} />
-        <Lightformer form="rect" intensity={1.2} position={[5, 2, 1]} rotation-y={-Math.PI / 2} scale={[6, 2, 1]} />
-        <Lightformer form="ring" intensity={1} position={[0, 3, 4]} scale={2} color="#ffffff" />
-      </Environment>
-    </>
-  );
 }
 
 function ToolButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {

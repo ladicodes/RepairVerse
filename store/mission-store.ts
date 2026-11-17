@@ -15,6 +15,7 @@ interface MissionStore {
   advance: (missionId: string) => void;
   inspect: (missionId: string, hotspotId: string) => void;
   answer: (missionId: string, kind: QuestionKind, choiceId: string) => void;
+  takeHint: (missionId: string, kind: QuestionKind) => void;
   reset: (missionId: string) => void;
 }
 
@@ -62,6 +63,10 @@ export const useMissionStore = create<MissionStore>()(
         answer: (id, kind, choiceId) => {
           const m = getMission(id);
           if (m) update(id, (p) => engine.answer(p, m, kind, choiceId));
+        },
+        takeHint: (id, kind) => {
+          const m = getMission(id);
+          if (m) update(id, (p) => engine.takeHint(p, m, kind));
         },
         reset: (id) => {
           if (!getMission(id)) return;

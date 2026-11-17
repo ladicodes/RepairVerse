@@ -1,28 +1,61 @@
 "use client";
 
 import clsx from "clsx";
-import { Check, X } from "lucide-react";
+import { Check, Lightbulb, X } from "lucide-react";
 import type { Question } from "@/data/missions";
 
 export function QuestionCard({
   question,
   answered,
-  points,
+  lost,
+  hintUsed,
+  hintCost,
+  onHint,
   onAnswer,
 }: {
   question: Question;
   answered: string | undefined;
-  points: number;
+  /** Points the picked answer lost, not counting the hint. */
+  lost: number;
+  hintUsed: boolean;
+  hintCost: number;
+  onHint?: () => void;
   onAnswer: (choiceId: string) => void;
 }) {
   const picked = question.choices.find((c) => c.id === answered);
   const locked = answered !== undefined;
+  const verdict = !picked
+    ? ""
+    : picked.correct
+      ? hintUsed
+        ? `Correct. You spent ${hintCost} points on the hint.`
+        : "Correct. No points lost."
+      : picked.harmful
+        ? `Wrong, and it would make things worse. −${lost} points.`
+        : question.choices.some((c) => c.harmful)
+          ? `That doesn't fix it. −${lost} points.`
+          : `Not quite. −${lost} points.`;
 
   return (
     <div className="space-y-5">
       <div className="space-y-2">
         <h2 className="text-xl font-semibold leading-snug tracking-tight">{question.prompt}</h2>
-        {question.hint && !locked && <p className="text-sm text-muted">Hint: {question.hint}</p>}
+        {question.hint && !locked &&
+          (hintUsed ? (
+            <p className="flex gap-2 text-sm leading-relaxed text-muted">
+              <Lightbulb className="mt-0.5 size-4 shrink-0" aria-hidden /> {question.hint}
+            </p>
+          ) : (
+            onHint && (
+              <button
+                type="button"
+                onClick={onHint}
+                className="inline-flex items-center gap-2 text-sm font-medium text-accent-ink underline-offset-4 hover:underline"
+              >
+                <Lightbulb className="size-4" aria-hidden /> Show a hint (−{hintCost} points)
+              </button>
+            )
+          ))}
       </div>
 
       <fieldset disabled={locked} className="space-y-2">
@@ -74,7 +107,7 @@ export function QuestionCard({
           className={clsx("space-y-3 rounded-2xl border p-4", picked.correct ? "border-ok bg-ok-soft" : "border-danger bg-danger-soft")}
         >
           <p className="font-semibold">
-            {picked.correct ? `Correct. +${points} points` : "Not quite. 0 points"}
+            {verdict}
           </p>
           <p className="leading-relaxed">{picked.feedback}</p>
           <p className="border-t border-line-strong pt-3 text-sm leading-relaxed text-muted">{question.explanation}</p>

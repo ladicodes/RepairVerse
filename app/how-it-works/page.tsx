@@ -57,7 +57,7 @@ export default function HowItWorks() {
           </div>
           <dl className="grid gap-8 sm:grid-cols-2">
             {[
-              ["Scored once", "Your first answer to each question is the one that counts. Repeating a step never adds points."],
+              ["Start with full marks", "You begin at 100. Wrong calls, fixes that make things worse, and hints (5 points each) take points off. Your first answer is the one that counts."],
               ["Same input, same score", "Scoring is fixed rules, not a judgment call. Two people who choose the same way get the same score."],
               ["Survives a refresh", "Progress is saved in your browser, so a reload puts you back on the same stage."],
               ["Retry any time", "Run the mission again from the start. Retrying resets the stage and the score."],

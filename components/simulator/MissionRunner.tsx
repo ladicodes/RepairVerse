@@ -7,8 +7,8 @@ import { useCallback, useEffect, useState } from "react";
 import { ArrowRight, Fan, PlugZap, RotateCcw, Thermometer, X } from "lucide-react";
 import clsx from "clsx";
 import { getMission, type Mission } from "@/data/missions";
-import { canAdvance, isCorrect, type MissionProgress } from "@/lib/mission-engine";
-import { computeScore } from "@/lib/scoring";
+import { canAdvance, isCorrect, type MissionProgress, type QuestionKind } from "@/lib/mission-engine";
+import { answerPenalty, computeScore } from "@/lib/scoring";
 import { useMissionRun, useMissionStore } from "@/store/mission-store";
 import { LogoMark } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
@@ -159,7 +159,11 @@ function Briefing({ mission }: { mission: Mission }) {
 
 const STAGE_COPY = {
   SAFETY_CHECK: { n: 1, title: "Make it safe", body: "The laptop is still on and hot. Decide what to do before you open it." },
-  DEVICE_INSPECTION: { n: 2, title: "Inspect the device", body: "The bottom panel is off. Click the numbered parts to see what each does and what you find." },
+  DEVICE_INSPECTION: {
+    n: 2,
+    title: "Inspect the device",
+    body: "The bottom panel is off. Click the numbered parts to see what each does and what you find. Missing a part that explains the fault costs evidence points.",
+  },
   DIAGNOSIS: { n: 3, title: "Diagnose the fault", body: "Use your clues. Your first answer locks in." },
   REPAIR_DECISION: { n: 4, title: "Choose the repair", body: "Pick the safest correct next step. Your first answer locks in." },
   COMPLETED: { n: 4, title: "Mission complete", body: "" },
@@ -167,7 +171,7 @@ const STAGE_COPY = {
 
 function Simulator({ mission, run }: { mission: Mission; run: MissionProgress }) {
   const router = useRouter();
-  const { advance, inspect, answer, reset } = useMissionStore.getState();
+  const { advance, inspect, answer, takeHint, reset } = useMissionStore.getState();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [xray, setXray] = useState(run.stage !== "SAFETY_CHECK");
 
@@ -203,6 +207,15 @@ function Simulator({ mission, run }: { mission: Mission; run: MissionProgress })
   const ready = canAdvance(run, mission);
   const score = computeScore(run, mission);
   const hotspotsVisible = xray && run.stage !== "SAFETY_CHECK";
+  const questionProps = (kind: QuestionKind) => {
+    const picked = run.answers[kind];
+    return {
+      lost: picked === undefined ? 0 : answerPenalty(mission, kind, picked),
+      hintUsed: run.hints.includes(kind),
+      hintCost: mission.scoring.hintCost,
+      onHint: () => takeHint(mission.id, kind),
+    };
+  };
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -237,7 +250,7 @@ function Simulator({ mission, run }: { mission: Mission; run: MissionProgress })
               <QuestionCard
                 question={mission.safety}
                 answered={run.answers.safety}
-                points={mission.scoring.safety}
+                {...questionProps("safety")}
                 onAnswer={(c) => answer(mission.id, "safety", c)}
               />
             )}
@@ -259,7 +272,7 @@ function Simulator({ mission, run }: { mission: Mission; run: MissionProgress })
                 <QuestionCard
                   question={mission.diagnosis}
                   answered={run.answers.diagnosis}
-                  points={mission.scoring.diagnosis}
+                  {...questionProps("diagnosis")}
                   onAnswer={(c) => answer(mission.id, "diagnosis", c)}
                 />
               </>
@@ -270,7 +283,7 @@ function Simulator({ mission, run }: { mission: Mission; run: MissionProgress })
                 <QuestionCard
                   question={mission.repair}
                   answered={run.answers.repair}
-                  points={mission.scoring.repair}
+                  {...questionProps("repair")}
                   onAnswer={(c) => answer(mission.id, "repair", c)}
                 />
                 {run.answers.repair !== undefined && (

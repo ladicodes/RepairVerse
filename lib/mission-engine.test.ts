@@ -9,6 +9,7 @@ import {
   inspect,
   openBriefing,
   sanitizeProgress,
+  takeHint,
   type MissionProgress,
 } from "./mission-engine";
 import { computeScore } from "./scoring";
@@ -103,11 +104,46 @@ describe("scoring", () => {
     expect(computeScore(p, mission).categories[0].earned).toBe(0);
   });
 
+  it("starts at full marks before any choice", () => {
+    expect(computeScore(beginDiagnosis(openBriefing(createProgress("001"))), mission).total).toBe(100);
+  });
+
   it("never counts the same part twice", () => {
     let p = toInspection();
     for (let i = 0; i < 5; i++) p = inspect(p, mission, "fan");
     expect(p.inspected).toEqual(["fan"]);
-    expect(computeScore(p, mission).categories[1].earned).toBe(4);
+  });
+
+  it("costs evidence points for fault clues skipped before diagnosis", () => {
+    let p = toInspection();
+    for (const id of ["fan", "battery", "board"]) p = inspect(p, mission, id);
+    expect(computeScore(p, mission).categories[1].earned).toBe(20);
+    p = advance(p, mission);
+    expect(p.stage).toBe("DIAGNOSIS");
+    expect(computeScore(p, mission).categories[1].earned).toBe(7);
+  });
+
+  it("charges 20 for a repair that does nothing and 30 for one that makes things worse", () => {
+    const upToRepair = () => {
+      let p = toInspection();
+      for (const h of mission.hotspots) p = inspect(p, mission, h.id);
+      p = advance(p, mission);
+      p = answer(p, mission, "diagnosis", "a");
+      return advance(p, mission);
+    };
+    expect(computeScore(answer(upToRepair(), mission, "repair", "d"), mission).total).toBe(80);
+    expect(computeScore(answer(upToRepair(), mission, "repair", "c"), mission).total).toBe(70);
+  });
+
+  it("charges for a hint once, and only while the question is open", () => {
+    let p = beginDiagnosis(openBriefing(createProgress("001")));
+    expect(takeHint(p, mission, "diagnosis")).toBe(p);
+    p = takeHint(p, mission, "safety");
+    p = takeHint(p, mission, "safety");
+    expect(p.hints).toEqual(["safety"]);
+    expect(computeScore(p, mission).total).toBe(95);
+    p = answer(p, mission, "safety", "a");
+    expect(takeHint(p, mission, "safety")).toBe(p);
   });
 
   it("is deterministic", () => {
@@ -129,6 +165,13 @@ describe("restoring saved progress", () => {
   it("drops unknown hotspots and duplicates", () => {
     const raw = { ...toInspection(), inspected: ["fan", "fan", "ghost"] };
     expect(sanitizeProgress(raw, mission).inspected).toEqual(["fan"]);
+  });
+
+  it("drops unknown hint entries and defaults missing hints", () => {
+    const raw = { ...toInspection(), hints: ["safety", "bogus"] };
+    expect(sanitizeProgress(raw, mission).hints).toEqual(["safety"]);
+    const old = { ...toInspection(), hints: undefined };
+    expect(sanitizeProgress(old, mission).hints).toEqual([]);
   });
 
   it("keeps a valid completed run", () => {

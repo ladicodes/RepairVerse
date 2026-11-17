@@ -5,7 +5,7 @@ import clsx from "clsx";
 import { ArrowRight, Check, RotateCcw, X } from "lucide-react";
 import { getMission, type Mission, type Question } from "@/data/missions";
 import { isCorrect, type MissionProgress, type QuestionKind } from "@/lib/mission-engine";
-import { computeScore, rating } from "@/lib/scoring";
+import { computeScore, rating, type CategoryScore } from "@/lib/scoring";
 import { useMissionRun, useMissionStore } from "@/store/mission-store";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
@@ -110,7 +110,13 @@ function Report({ mission, run }: { mission: Mission; run: MissionProgress }) {
           <Verdict
             title="Repair decision"
             ok={isCorrect(mission, "repair", run.answers.repair)}
-            text={isCorrect(mission, "repair", run.answers.repair) ? "You chose a safe, diagnosis-first repair." : "That action wouldn't fix the fault safely."}
+            text={
+              isCorrect(mission, "repair", run.answers.repair)
+                ? "You chose a safe, diagnosis-first repair."
+                : mission.repair.choices.find((c) => c.id === run.answers.repair)?.harmful
+                  ? "That action would make the fault worse."
+                  : "That action wouldn't fix the fault."
+            }
           />
         </Container>
       </section>
@@ -120,7 +126,14 @@ function Report({ mission, run }: { mission: Mission; run: MissionProgress }) {
           <h2 className="mb-8 text-3xl font-semibold tracking-tight">Your answers</h2>
           <div className="grid gap-6 lg:grid-cols-3">
             {(["safety", "diagnosis", "repair"] as QuestionKind[]).map((k) => (
-              <AnswerReview key={k} question={mission[k]} picked={run.answers[k]} points={mission.scoring[k]} />
+              <AnswerReview
+                key={k}
+                question={mission[k]}
+                picked={run.answers[k]}
+                category={score.categories.find((c) => c.key === k)!}
+                hintUsed={run.hints.includes(k)}
+                hintCost={mission.scoring.hintCost}
+              />
             ))}
           </div>
         </Container>
@@ -189,7 +202,19 @@ function Verdict({ title, ok, text }: { title: string; ok: boolean; text: string
   );
 }
 
-function AnswerReview({ question, picked, points }: { question: Question; picked?: string; points: number }) {
+function AnswerReview({
+  question,
+  picked,
+  category,
+  hintUsed,
+  hintCost,
+}: {
+  question: Question;
+  picked?: string;
+  category: CategoryScore;
+  hintUsed: boolean;
+  hintCost: number;
+}) {
   const choice = question.choices.find((c) => c.id === picked);
   const right = question.choices.find((c) => c.correct);
   return (
@@ -197,9 +222,10 @@ function AnswerReview({ question, picked, points }: { question: Question; picked
       <div className="flex items-start justify-between gap-4">
         <h3 className="font-semibold leading-snug">{question.prompt}</h3>
         <span className="shrink-0 font-mono text-sm tabular-nums text-muted">
-          {choice?.correct ? points : 0}/{points}
+          {category.earned}/{category.max}
         </span>
       </div>
+      {hintUsed && <p className="-mt-2 text-sm text-dim">Hint used: −{hintCost} points</p>}
       <div className={clsx("rounded-xl p-3", choice?.correct ? "bg-ok-soft" : "bg-danger-soft")}>
         <p className="text-sm text-muted">Your answer</p>
         <p className="font-medium">{choice?.text ?? "No answer"}</p>

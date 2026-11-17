@@ -22,13 +22,21 @@ export function makeScreenTexture(mode: ScreenMode): THREE.CanvasTexture | null 
   const hot = mode === "hot";
   const accent = hot ? "#ea580c" : "#0891b2";
 
-  // Desktop wallpaper: flat, calm
-  g.fillStyle = "#1f3a5a";
+  // Desktop wallpaper: soft blue ribbons on a pale field
+  const bg = g.createLinearGradient(0, 0, w, h);
+  bg.addColorStop(0, "#c9dcf2");
+  bg.addColorStop(1, "#8fb3df");
+  g.fillStyle = bg;
   g.fillRect(0, 0, w, h);
-  g.fillStyle = "#24476d";
-  g.beginPath();
-  g.ellipse(w * 0.78, h * 0.95, w * 0.6, h * 0.55, -0.2, 0, Math.PI * 2);
-  g.fill();
+  for (let i = 0; i < 5; i++) {
+    const rib = g.createRadialGradient(w * 0.5, h * 0.62, 10, w * 0.5, h * 0.62, w * (0.18 + i * 0.07));
+    rib.addColorStop(0, `rgba(20,70,190,${0.55 - i * 0.08})`);
+    rib.addColorStop(1, "rgba(20,70,190,0)");
+    g.fillStyle = rib;
+    g.beginPath();
+    g.ellipse(w * 0.5, h * 0.62, w * (0.12 + i * 0.06), h * (0.3 - i * 0.03), (i - 2) * 0.45, 0, Math.PI * 2);
+    g.fill();
+  }
 
   // Taskbar
   const tb = 44;

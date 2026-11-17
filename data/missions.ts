@@ -26,11 +26,14 @@ export interface Choice {
   id: string;
   text: string;
   correct: boolean;
+  /** A wrong choice that makes the fault worse, not just one that fails to fix it. */
+  harmful?: boolean;
   feedback: string;
 }
 
 export interface Question {
   prompt: string;
+  /** Revealed on request, at a cost of `scoring.hintCost`. */
   hint?: string;
   choices: Choice[];
   explanation: string;
@@ -70,11 +73,20 @@ export interface Mission {
   safety: Question;
   diagnosis: Question;
   repair: Question;
+  /**
+   * Each stage starts at full marks and loses points for mistakes.
+   * The four stage values add up to the mission total.
+   */
   scoring: {
     safety: number;
+    /** Evidence: lost in proportion to fault-relevant parts not inspected before diagnosis. */
     inspection: number;
     diagnosis: number;
     repair: number;
+    /** Points lost per hint revealed. */
+    hintCost: number;
+    /** Points lost for a wrong repair that is not harmful. A harmful one loses the whole stage. */
+    ineffectiveRepair: number;
   };
   summary: string[];
 }
@@ -209,6 +221,7 @@ export const missions: Record<string, Mission> = {
     },
     diagnosis: {
       prompt: "Based on your clues, what is the most likely cause of the overheating?",
+      hint: "Follow the path the air takes through the laptop. Where did you find something wrong?",
       choices: [
         {
           id: "a",
@@ -244,6 +257,7 @@ export const missions: Record<string, Mission> = {
     },
     repair: {
       prompt: "What is the safest appropriate next step?",
+      hint: "A good first repair removes power and deals with the cause you found, not the symptoms.",
       choices: [
         {
           id: "a",
@@ -256,6 +270,7 @@ export const missions: Record<string, Mission> = {
           id: "b",
           text: "Continue operating the laptop while it overheats",
           correct: false,
+          harmful: true,
           feedback:
             "Running a laptop that keeps overheating stresses the CPU and battery and can shorten their life. Fix the cause first.",
         },
@@ -263,6 +278,7 @@ export const missions: Record<string, Mission> = {
           id: "c",
           text: "Pour water into the cooling vents",
           correct: false,
+          harmful: true,
           feedback:
             "Never. Liquid inside electronics causes short circuits, corrosion, and can be dangerous with a lithium-ion battery.",
         },
@@ -277,7 +293,7 @@ export const missions: Record<string, Mission> = {
       explanation:
         "Safe, diagnosis-first repair: remove power, clean the airflow path, then verify. If temperatures stay high after cleaning, replacing thermal paste is the usual next step, ideally under supervision the first time.",
     },
-    scoring: { safety: 20, inspection: 20, diagnosis: 30, repair: 30 },
+    scoring: { safety: 20, inspection: 20, diagnosis: 30, repair: 30, hintCost: 5, ineffectiveRepair: 20 },
     summary: [
       "Laptops cool themselves by moving air: intake vent, fan, heatsink fins, exhaust.",
       "Dust and lint restrict airflow. Soft surfaces like beds block the intake.",

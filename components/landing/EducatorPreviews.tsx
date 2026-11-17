@@ -3,7 +3,7 @@
 import clsx from "clsx";
 import { missions } from "@/data/missions";
 import { QuestionCard } from "@/components/simulator/QuestionCard";
-import { computeScore } from "@/lib/scoring";
+import { answerPenalty, computeScore } from "@/lib/scoring";
 import type { MissionProgress } from "@/lib/mission-engine";
 
 const mission = missions["001"];
@@ -14,6 +14,7 @@ const sample: MissionProgress = {
   stage: "COMPLETED",
   inspected: ["fan", "vents", "heatsink", "battery"],
   answers: { safety: "a", diagnosis: "a", repair: "d" },
+  hints: ["diagnosis"],
   startedAt: null,
   completedAt: null,
 };
@@ -22,7 +23,14 @@ export function StudentAnswerPreview() {
   return (
     <div className="pointer-events-none rounded-3xl border border-line bg-surface p-5 shadow-overlay" aria-hidden>
       <p className="mb-4 font-mono text-sm text-dim">Stage 4 of 4</p>
-      <QuestionCard question={mission.repair} answered="d" points={mission.scoring.repair} onAnswer={() => undefined} />
+      <QuestionCard
+        question={mission.repair}
+        answered="d"
+        lost={answerPenalty(mission, "repair", "d")}
+        hintUsed={false}
+        hintCost={mission.scoring.hintCost}
+        onAnswer={() => undefined}
+      />
     </div>
   );
 }
