@@ -228,3 +228,34 @@ cd RepairVerse
 - [ ] Deployment
 
 **After the MVP:** more laptop faults, phones, household appliances, and additional repair scenarios.
+
+---
+
+## 🏆 Hackathon
+
+RepairVerse is being built for the **Aholo Global 3D AI Hackathon**, with **Aholo Lux3D** as the source of its 3D device models.
+
+Our focus is **educational**: we want to use AI-generated 3D content to make practical, hands-on technical training easier to reach for people who don't have access to devices, tools, or workshops.
+
+## 🤝 Contributing
+
+RepairVerse is open to contributions. Ideas, feedback, and help are welcome, especially:
+
+- New repair mission ideas and fault scenarios
+- Review of repair content by people with hands-on repair experience
+- 3D viewer, hotspot, and UI work once the app is initialized
+- Accessibility and usability feedback
+
+To contribute, open an [issue](https://github.com/ladicodes/RepairVerse/issues) to discuss your idea, or fork the repository and submit a pull request.
+
+## 📄 License
+
+A license has not been specified yet. Until one is added, all rights are reserved by the repository owner.
+
+---
+
+<div align="center">
+
+**RepairVerse** · Making practical repair education more accessible through interactive 3D learning.
+
+</div>
