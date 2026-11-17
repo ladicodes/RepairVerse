@@ -1,103 +1,108 @@
-import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import { MarketingShell, Section, CtaBand } from "@/components/landing/Marketing";
+import { HeroVisual } from "@/components/landing/HeroVisual";
+import { HeroCopy } from "@/components/landing/HeroCopy";
+import { DecisionMock, StepArt, ThermalChart, TutorialMock } from "@/components/landing/Illustrations";
+import { ButtonLink } from "@/components/ui/Button";
+import { Container } from "@/components/ui/Container";
+import { missions } from "@/data/missions";
+import { STEPS } from "@/components/landing/steps";
+
+const mission = missions["001"];
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <MarketingShell>
+      {/* Hero */}
+      <Container className="grid items-center gap-12 pb-24 pt-12 lg:grid-cols-12 lg:pt-16">
+        <div className="lg:col-span-5">
+          <HeroCopy />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        <div className="lg:col-span-7">
+          <HeroVisual />
+        </div>
+      </Container>
+
+      {/* Watching vs deciding */}
+      <Section
+        tone="surface"
+        title="Most repair learning is watching. Here you make the calls."
+        intro="Workshops and spare devices cost money. Tutorials are free, but they never ask you to decide anything, and trial and error on real hardware can break it."
+      >
+        <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+          <div className="space-y-4">
+            <p className="text-sm font-medium text-muted">A tutorial video</p>
+            <TutorialMock />
+          </div>
+          <div className="space-y-4">
+            <p className="text-sm font-medium text-fg">A RepairVerse mission</p>
+            <DecisionMock />
+          </div>
+        </div>
+      </Section>
+
+      {/* Steps */}
+      <Section
+        title="Four decisions between a ticket and a fix"
+        intro="The order a technician follows: make it safe, gather evidence, then act. You can't skip ahead."
+        action={
+          <ButtonLink href="/how-it-works" variant="secondary">
+            How scoring works
+          </ButtonLink>
+        }
+      >
+        <ol className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {STEPS.map((s, i) => (
+            <li key={s.title} className="space-y-4">
+              <StepArt step={i as 0 | 1 | 2 | 3} />
+              <div className="flex items-baseline justify-between">
+                <h3 className="text-lg font-semibold tracking-tight">
+                  <span className="mr-2 font-mono text-sm font-normal text-dim">{i + 1}</span>
+                  {s.title}
+                </h3>
+                <span className="font-mono text-sm tabular-nums text-muted">{s.points} pts</span>
+              </div>
+              <p className="leading-relaxed text-muted">{s.body}</p>
+            </li>
+          ))}
+        </ol>
+      </Section>
+
+      {/* Mission teaser */}
+      <Section
+        tone="surface"
+        title={`Mission 001: ${mission.title}`}
+        intro={mission.ticket.symptom.split(". ")[0] + "."}
+        action={
+          <Link href="/missions" className="inline-flex items-center gap-2 font-medium text-fg hover:text-accent-ink">
+            Read the full brief <ArrowRight className="size-4" />
+          </Link>
+        }
+      >
+        <div className="grid gap-6 lg:grid-cols-12">
+          <div className="lg:col-span-7">
+            <ThermalChart />
+          </div>
+          <div className="flex flex-col justify-between gap-8 rounded-3xl border border-line bg-sunken p-6 lg:col-span-5">
+            <div>
+              <p className="mb-4 text-sm text-dim">Intake notes from the customer</p>
+              <ul className="space-y-3">
+                {mission.ticket.notes.map((n) => (
+                  <li key={n} className="border-b border-line pb-3 text-lg text-fg last:border-0">
+                    {n}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <ButtonLink href="/mission/001" size="lg" className="self-start">
+              Take the ticket <ArrowRight className="size-4" />
+            </ButtonLink>
+          </div>
+        </div>
+      </Section>
+
+      <CtaBand title="A laptop on bench 3 is overheating." body="Six minutes, one device, and every decision is yours." />
+    </MarketingShell>
   );
 }
