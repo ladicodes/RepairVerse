@@ -101,3 +101,55 @@ Planned for the MVP:
 | ⚡ **Immediate feedback** | Every choice is explained right away. |
 | 🏆 **Gamified scoring** | Points for correct reasoning, fewer for wrong turns and hints. |
 | 🌐 **Browser-based learning** | No install. Runs on any modern browser. |
+
+---
+
+## 🔮 Powered by Aholo Lux3D
+
+Every device in RepairVerse starts as an **Aholo Lux3D** asset. Lux3D gives us the 3D models; RepairVerse turns them into learning experiences.
+
+```text
+ Prompt or reference image
+            │
+            ▼
+   ┌─────────────────┐
+   │   Aholo Lux3D   │   generates the 3D device model
+   └────────┬────────┘
+            ▼
+   ┌─────────────────┐
+   │  3D web viewer  │   React Three Fiber scene in the browser
+   └────────┬────────┘
+            ▼
+   ┌─────────────────┐
+   │ Learning layer  │   hotspots · fault scenarios · feedback · scoring
+   └────────┬────────┘
+            ▼
+   Reused across new missions and devices
+```
+
+### 1. Generating device models
+
+We use Lux3D to generate a 3D model of each device from a **text prompt** or a **reference image** (for example, "a modern 15-inch laptop"). This replaces hand-modeling each device, which is what lets a small team build missions for many different devices.
+
+### 2. Importing models into the 3D viewer
+
+The generated model is exported, converted to a web-friendly format such as glTF/GLB if needed, and added to the project's model assets. The viewer loads it into a React Three Fiber scene with lighting and camera controls so learners can rotate and zoom around the device.
+
+### 3. Adding interactive hotspots
+
+Lux3D produces the visual model. **The RepairVerse team adds the interactivity on top:** we place hotspot markers at chosen positions on the model and attach information to each one, such as the component's name, its role, and its condition in the current scenario. Where a mission needs internal parts to be visible, those are designed or arranged by the team for teaching purposes.
+
+### 4. Guided repair challenges and scoring
+
+Each mission is defined as data written by the team: the symptom, the hotspots involved, the possible causes, the repair options, and the feedback for each choice. A mission engine reads that definition, tracks the learner's progress, and calculates a score based on correct diagnoses, wrong attempts, and hints used.
+
+### What Lux3D does and doesn't do
+
+| Aholo Lux3D provides | RepairVerse adds |
+|---|---|
+| 3D device models generated from prompts or reference images | Hotspot placement and component information |
+| The visual base for every mission | Fault scenarios, repair options, and explanations |
+| Assets that can be reused across missions | Mission logic, feedback, and scoring |
+
+> [!IMPORTANT]
+> Lux3D generates the visual 3D asset. It does not create repair instructions, fault logic, or mechanically accurate internal components. All teaching content in RepairVerse is authored by the project team.
