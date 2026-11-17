@@ -153,3 +153,78 @@ Each mission is defined as data written by the team: the symptom, the hotspots i
 
 > [!IMPORTANT]
 > Lux3D generates the visual 3D asset. It does not create repair instructions, fault logic, or mechanically accurate internal components. All teaching content in RepairVerse is authored by the project team.
+
+---
+
+## 🧰 Tech Stack
+
+> [!NOTE]
+> This is the **planned** stack. The application has not been initialized, so **no dependencies are installed yet** and there is no `package.json` in the repository.
+
+| Layer | Technology | Purpose | Status |
+|---|---|---|---|
+| Framework | [Next.js](https://nextjs.org/) | App routing and pages | Planned |
+| Language | [TypeScript](https://www.typescriptlang.org/) | Type-safe application code | Planned |
+| Styling | [Tailwind CSS](https://tailwindcss.com/) | UI styling | Planned |
+| 3D rendering | [Three.js](https://threejs.org/) | WebGL rendering | Planned |
+| React 3D | [React Three Fiber](https://r3f.docs.pmnd.rs/) | Three.js scenes as React components | Planned |
+| 3D helpers | [Drei](https://github.com/pmndrs/drei) | Camera controls, model loading, HTML overlays | Planned |
+| 3D assets | Aholo Lux3D | Device model generation | Planned |
+| Hosting | [Vercel](https://vercel.com/) | Deployment | Planned |
+
+## 🗂️ Project Structure
+
+Proposed layout once the app is initialized (subject to change):
+
+```text
+RepairVerse/
+├── app/
+│   ├── layout.tsx
+│   ├── page.tsx                    # Landing page
+│   └── missions/
+│       └── [missionId]/
+│           └── page.tsx            # Mission player
+├── components/
+│   ├── viewer/                     # 3D canvas, camera controls, model loader
+│   ├── hotspots/                   # Hotspot markers and info panels
+│   └── mission/                    # Steps, choices, feedback, score UI
+├── lib/
+│   ├── mission-engine/             # Mission state, rules, and scoring
+│   └── types.ts                    # Shared types (Mission, Hotspot, Action)
+├── data/
+│   └── missions/
+│       └── overheating-laptop.json # First mission definition
+├── public/
+│   └── models/                     # Lux3D-generated device models (.glb)
+└── README.md
+```
+
+Currently, the repository contains only this `README.md`.
+
+## 🚀 Getting Started
+
+> [!WARNING]
+> The application has not been set up yet. There is nothing to install or run at this stage. Setup steps, scripts, and any required environment variables will be documented here once the Next.js project is initialized.
+
+To get a copy of the repository:
+
+```bash
+git clone https://github.com/ladicodes/RepairVerse.git
+cd RepairVerse
+```
+
+**Planned prerequisites:** a current LTS version of [Node.js](https://nodejs.org/) and a package manager such as npm.
+
+## 📍 Roadmap
+
+- [x] Project documentation
+- [ ] Application foundation (Next.js, TypeScript, Tailwind CSS)
+- [ ] Lux3D model generation for the first device
+- [ ] 3D viewer
+- [ ] Interactive hotspots
+- [ ] Mission engine
+- [ ] Feedback and scoring
+- [ ] Testing
+- [ ] Deployment
+
+**After the MVP:** more laptop faults, phones, household appliances, and additional repair scenarios.
