@@ -1,3 +1,6 @@
+import { COOL_SCREEN, HOT_SCREEN, type ScreenSpec } from "./screens";
+import { extraMissions } from "./catalog";
+
 export type StageId =
   | "NOT_STARTED"
   | "INTRODUCTION"
@@ -51,10 +54,45 @@ export interface ModelAsset {
   rotation?: Vec3;
 }
 
+export type ReadoutIcon =
+  | "temp"
+  | "fan"
+  | "battery"
+  | "power"
+  | "wifi"
+  | "drive"
+  | "display"
+  | "keyboard"
+  | "memory"
+  | "liquid"
+  | "hinge";
+
+/** One live reading shown over the 3D viewer. */
+export interface Reading {
+  icon: ReadoutIcon;
+  label: string;
+  value: string;
+  tone: "bad" | "ok" | "neutral";
+}
+
+export type MissionCategory =
+  | "Cooling"
+  | "Power"
+  | "Battery"
+  | "Storage"
+  | "Memory"
+  | "Display"
+  | "Connectivity"
+  | "Liquid damage"
+  | "Chassis";
+
 export interface Mission {
   id: string;
   code: string;
   title: string;
+  /** Short card title for the mission list. */
+  short: string;
+  category: MissionCategory;
   device: string;
   difficulty: "Beginner" | "Intermediate" | "Advanced";
   durationMin: number;
@@ -89,6 +127,19 @@ export interface Mission {
     ineffectiveRepair: number;
   };
   summary: string[];
+  /** How the laptop looks and reads before and after the correct repair. */
+  visual: {
+    /** Dust on the fan and fins until repaired. */
+    dusty: boolean;
+    /** CPU glows hot until repaired. */
+    hot: boolean;
+  };
+  screen: { fault: ScreenSpec; fixed: ScreenSpec };
+  readout: { fault: Reading[]; fixed: Reading[] };
+  /** Body text for the safety stage. */
+  safetyIntro: string;
+  /** Shown after the repair answer. */
+  postRepair: { fixed: string; unresolved: string };
 }
 
 export const missions: Record<string, Mission> = {
@@ -96,14 +147,16 @@ export const missions: Record<string, Mission> = {
     id: "001",
     code: "M-001",
     title: "Fix the overheating laptop",
-    device: "HP 15-inch laptop",
+    short: "Overheats and shuts down",
+    category: "Cooling",
+    device: "Laptop of your choice",
     difficulty: "Beginner",
     durationMin: 6,
     ticket: {
       customer: "Walk-in customer",
       received: "Bench 03 · Intake",
       symptom:
-        "A customer brings in an HP laptop that becomes unusually hot and shuts down after 15 minutes of use. Your task is to investigate the problem and determine the appropriate repair action.",
+        "A customer brings in a laptop that becomes unusually hot and shuts down after 15 minutes of use. Your task is to investigate the problem and determine the appropriate repair action.",
       notes: [
         "Fan gets loud a few minutes after boot",
         "Underside too hot to rest on a lap",
@@ -300,8 +353,29 @@ export const missions: Record<string, Mission> = {
       "A hot CPU throttles, then the system shuts down to prevent damage.",
       "Safe repair starts with removing power and ends with verifying temperatures.",
     ],
+    visual: { dusty: true, hot: true },
+    screen: { fault: HOT_SCREEN, fixed: COOL_SCREEN },
+    readout: {
+      fault: [
+        { icon: "temp", label: "CPU", value: "96°C", tone: "bad" },
+        { icon: "fan", label: "Fan", value: "Strained", tone: "neutral" },
+      ],
+      fixed: [
+        { icon: "temp", label: "CPU after cleaning", value: "61°C", tone: "ok" },
+        { icon: "fan", label: "Fan", value: "Quiet", tone: "neutral" },
+      ],
+    },
+    safetyIntro: "The laptop is still on and hot. Decide what to do before you open it.",
+    postRepair: {
+      fixed: "Post-repair test: after cleaning, the CPU holds 61°C under load and the fan runs quietly.",
+      unresolved: "The fault is still there. The laptop would keep overheating. Review the explanation above.",
+    },
   },
+  ...extraMissions,
 };
+
+/** Missions in catalog order. */
+export const missionList: Mission[] = Object.values(missions).sort((a, b) => a.id.localeCompare(b.id));
 
 export function getMission(id: string): Mission | undefined {
   return Object.prototype.hasOwnProperty.call(missions, id) ? missions[id] : undefined;

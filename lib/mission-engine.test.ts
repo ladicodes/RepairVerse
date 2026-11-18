@@ -179,3 +179,47 @@ describe("restoring saved progress", () => {
     expect(sanitizeProgress(JSON.parse(JSON.stringify(p)), mission)).toEqual(p);
   });
 });
+
+describe("mission catalog", () => {
+  it("has at least twelve missions with unique ids and codes", async () => {
+    const { missionList } = await import("@/data/missions");
+    expect(missionList.length).toBeGreaterThanOrEqual(12);
+    expect(new Set(missionList.map((m) => m.id)).size).toBe(missionList.length);
+    expect(new Set(missionList.map((m) => m.code)).size).toBe(missionList.length);
+  });
+
+  it("every mission is complete and scores out of 100", async () => {
+    const { missionList } = await import("@/data/missions");
+    for (const m of missionList) {
+      const s = m.scoring;
+      expect(s.safety + s.inspection + s.diagnosis + s.repair, m.id).toBe(100);
+      for (const q of [m.safety, m.diagnosis, m.repair]) {
+        expect(q.choices.filter((c) => c.correct), `${m.id} ${q.prompt}`).toHaveLength(1);
+        expect(new Set(q.choices.map((c) => c.id)).size, m.id).toBe(q.choices.length);
+      }
+      expect(m.hotspots.some((h) => h.relevant), m.id).toBe(true);
+      expect(new Set(m.hotspots.map((h) => h.id)).size, m.id).toBe(m.hotspots.length);
+      expect(m.minInspections, m.id).toBeLessThanOrEqual(m.hotspots.length);
+      expect(m.readout.fault.length, m.id).toBeGreaterThan(0);
+      expect(m.readout.fixed.length, m.id).toBeGreaterThan(0);
+    }
+  });
+
+  it("a perfect run scores 100 on every mission", async () => {
+    const { missionList } = await import("@/data/missions");
+    for (const m of missionList) {
+      let p = beginDiagnosis(openBriefing(createProgress(m.id)), 0);
+      const pick = (q: typeof m.safety) => q.choices.find((c) => c.correct)!.id;
+      p = answer(p, m, "safety", pick(m.safety));
+      p = advance(p, m);
+      for (const h of m.hotspots) p = inspect(p, m, h.id);
+      p = advance(p, m);
+      p = answer(p, m, "diagnosis", pick(m.diagnosis));
+      p = advance(p, m);
+      p = answer(p, m, "repair", pick(m.repair));
+      p = advance(p, m);
+      expect(p.stage, m.id).toBe("COMPLETED");
+      expect(computeScore(p, m).total, m.id).toBe(100);
+    }
+  });
+});

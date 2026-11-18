@@ -1,9 +1,18 @@
 import * as THREE from "three";
+import { COOL_SCREEN, HOT_SCREEN, type ScreenSpec } from "@/data/screens";
 
 export type ScreenMode = "hot" | "off" | "cool";
 
-/** Draws the laptop's display. Generated locally, no external assets. */
-export function makeScreenTexture(mode: ScreenMode): THREE.CanvasTexture | null {
+export type { ScreenSpec };
+export type ScreenInput = ScreenMode | ScreenSpec;
+
+/** Stable cache key so textures are rebuilt only when the content changes. */
+export function screenKey(input: ScreenInput) {
+  return typeof input === "string" ? input : JSON.stringify(input);
+}
+
+/** Draws the laptop's display. */
+export function makeScreenTexture(input: ScreenInput): THREE.CanvasTexture | null {
   if (typeof document === "undefined") return null;
   const w = 1024;
   const h = 576;
@@ -13,14 +22,24 @@ export function makeScreenTexture(mode: ScreenMode): THREE.CanvasTexture | null 
   const g = c.getContext("2d");
   if (!g) return null;
 
-  if (mode === "off") {
+  if (input === "off") {
     g.fillStyle = "#07090d";
     g.fillRect(0, 0, w, h);
     return finish(c);
   }
+  const spec = input === "hot" ? HOT_SCREEN : input === "cool" ? COOL_SCREEN : input;
 
-  const hot = mode === "hot";
-  const accent = hot ? "#ea580c" : "#0891b2";
+  if (spec.dark) {
+    g.fillStyle = "#050608";
+    g.fillRect(0, 0, w, h);
+    g.fillStyle = "#d7dbe2";
+    g.font = "500 22px ui-monospace, SFMono-Regular, Menlo, monospace";
+    (spec.lines ?? []).forEach((line, i) => g.fillText(line, 48, 70 + i * 34));
+    return finish(c);
+  }
+
+  const bad = spec.tone === "bad";
+  const accent = bad ? "#ea580c" : "#0891b2";
 
   // Desktop wallpaper: soft blue ribbons on a pale field
   const bg = g.createLinearGradient(0, 0, w, h);
@@ -50,7 +69,7 @@ export function makeScreenTexture(mode: ScreenMode): THREE.CanvasTexture | null 
   g.fillStyle = "#343d4f";
   g.font = "500 15px ui-sans-serif, system-ui, sans-serif";
   g.textAlign = "right";
-  g.fillText(hot ? "14:15" : "14:42", w - 20, h - tb + 20);
+  g.fillText(spec.clock ?? (bad ? "14:15" : "14:42"), w - 20, h - tb + 20);
   g.font = "400 12px ui-sans-serif, system-ui, sans-serif";
   g.fillText("17/11/2026", w - 20, h - tb + 36);
   g.textAlign = "left";
@@ -72,7 +91,7 @@ export function makeScreenTexture(mode: ScreenMode): THREE.CanvasTexture | null 
   g.fill();
   g.fillStyle = "#343d4f";
   g.font = "500 14px ui-sans-serif, system-ui, sans-serif";
-  g.fillText("System monitor", wx + 16, wy + 24);
+  g.fillText(spec.window, wx + 16, wy + 24);
   ["#cdd4de", "#cdd4de", "#cdd4de"].forEach((col, i) => {
     g.fillStyle = col;
     g.fillRect(wx + ww - 90 + i * 28, wy + 17, 14, 4);
@@ -81,24 +100,27 @@ export function makeScreenTexture(mode: ScreenMode): THREE.CanvasTexture | null 
   const px = wx + 28;
   g.font = "500 16px ui-sans-serif, system-ui, sans-serif";
   g.fillStyle = "#4b5568";
-  g.fillText(hot ? "CPU temperature" : "CPU temperature after cleaning", px, wy + 74);
-  g.font = "600 76px ui-sans-serif, system-ui, sans-serif";
+  g.fillText(spec.heading, px, wy + 74);
+  const big = spec.value.length > 6 ? 54 : 76;
+  g.font = `600 ${big}px ui-sans-serif, system-ui, sans-serif`;
   g.fillStyle = "#080d1b";
-  const temp = hot ? "96" : "61";
-  g.fillText(temp, px - 3, wy + 148);
-  const tw = g.measureText(temp).width;
-  g.font = "500 30px ui-sans-serif, system-ui, sans-serif";
-  g.fillStyle = "#4b5568";
-  g.fillText("°C", px + tw + 2, wy + 118);
+  g.fillText(spec.value, px - 3, wy + 148);
+  if (spec.unit) {
+    const tw = g.measureText(spec.value).width;
+    g.font = "500 30px ui-sans-serif, system-ui, sans-serif";
+    g.fillStyle = "#4b5568";
+    g.fillText(spec.unit, px + tw + 8, wy + 118);
+  }
 
-  const pill = hot ? "Throttling" : "Stable";
   g.font = "600 15px ui-sans-serif, system-ui, sans-serif";
-  const pw = g.measureText(pill).width + 28;
-  g.fillStyle = hot ? "#fff1e8" : "#e6fafd";
+  const pw = g.measureText(spec.pill).width + 28;
+  g.fillStyle = bad ? "#fff1e8" : "#e6fafd";
   roundRect(g, wx + ww - 28 - pw, wy + 56, pw, 30, 15);
   g.fill();
   g.fillStyle = accent;
-  g.fillText(pill, wx + ww - 28 - pw + 14, wy + 76);
+  g.fillText(spec.pill, wx + ww - 28 - pw + 14, wy + 76);
+
+  if (spec.trend === "none") return finish(c);
 
   // Chart
   const left = px;
@@ -111,16 +133,18 @@ export function makeScreenTexture(mode: ScreenMode): THREE.CanvasTexture | null 
   g.moveTo(left, bottom);
   g.lineTo(right, bottom);
   g.stroke();
-  g.setLineDash([6, 6]);
-  g.strokeStyle = "#e7a3b3";
-  g.beginPath();
-  g.moveTo(left, top + 10);
-  g.lineTo(right, top + 10);
-  g.stroke();
-  g.setLineDash([]);
-  g.font = "500 12px ui-sans-serif, system-ui, sans-serif";
-  g.fillStyle = "#be123c";
-  g.fillText("Shutdown limit", left, top + 2);
+  if (spec.limit) {
+    g.setLineDash([6, 6]);
+    g.strokeStyle = "#e7a3b3";
+    g.beginPath();
+    g.moveTo(left, top + 10);
+    g.lineTo(right, top + 10);
+    g.stroke();
+    g.setLineDash([]);
+    g.font = "500 12px ui-sans-serif, system-ui, sans-serif";
+    g.fillStyle = "#be123c";
+    g.fillText(spec.limit, left, top + 2);
+  }
 
   g.strokeStyle = accent;
   g.lineWidth = 3.5;
@@ -129,7 +153,16 @@ export function makeScreenTexture(mode: ScreenMode): THREE.CanvasTexture | null 
   for (let i = 0; i <= 60; i++) {
     const x = left + (i / 60) * (right - left);
     const t = i / 60;
-    const level = hot ? 0.12 + Math.sqrt(t) * 0.8 : 0.35 + Math.sin(t * Math.PI) * 0.1;
+    const level =
+      spec.trend === "rise"
+        ? 0.12 + Math.sqrt(t) * 0.8
+        : spec.trend === "fall"
+          ? 0.88 - Math.sqrt(t) * 0.78
+          : spec.trend === "unstable"
+            ? i % 9 < 2
+              ? 0.06
+              : 0.62
+            : 0.35 + Math.sin(t * Math.PI) * 0.1;
     const y = bottom - level * (bottom - top - 10) - Math.sin(i * 1.4) * 2;
     if (i === 0) g.moveTo(x, y);
     else g.lineTo(x, y);

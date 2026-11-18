@@ -2,7 +2,24 @@
 
 import clsx from "clsx";
 import { Check, Lightbulb, X } from "lucide-react";
+import { useMemo } from "react";
 import type { Question } from "@/data/missions";
+
+/**
+ * Stable display order for a question's choices. Seeded from the prompt so the order is
+ * the same on every render and visit, but the correct answer isn't always in the same slot.
+ */
+function displayOrder<T>(items: T[], seed: string): T[] {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    h = Math.imul(h ^ (h >>> 15), 2246822507) >>> 0;
+    const j = h % (i + 1);
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
 
 export function QuestionCard({
   question,
@@ -22,6 +39,7 @@ export function QuestionCard({
   onHint?: () => void;
   onAnswer: (choiceId: string) => void;
 }) {
+  const ordered = useMemo(() => displayOrder(question.choices, question.prompt + question.choices[0].text), [question]);
   const picked = question.choices.find((c) => c.id === answered);
   const locked = answered !== undefined;
   const verdict = !picked
@@ -60,7 +78,7 @@ export function QuestionCard({
 
       <fieldset disabled={locked} className="space-y-2">
         <legend className="sr-only">{question.prompt}</legend>
-        {question.choices.map((c, i) => {
+        {ordered.map((c, i) => {
           const isPicked = c.id === answered;
           const reveal = locked && c.correct;
           return (

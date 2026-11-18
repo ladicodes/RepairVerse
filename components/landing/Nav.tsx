@@ -11,7 +11,8 @@ import { RAIL } from "@/components/ui/Container";
 
 const links = [
   { href: "/how-it-works", label: "How it works" },
-  { href: "/missions", label: "Mission 001" },
+  { href: "/missions", label: "Missions" },
+  { href: "/shift", label: "Shift mode" },
   { href: "/technology", label: "Lux3D pipeline" },
   { href: "/educators", label: "For educators" },
 ];
@@ -51,8 +52,8 @@ export function Nav() {
           ))}
         </ul>
         <div className="flex items-center gap-2">
-          <ButtonLink href="/mission/001" className="hidden sm:inline-flex">
-            Start mission
+          <ButtonLink href="/missions" className="hidden sm:inline-flex">
+            Browse missions
           </ButtonLink>
           <button
             type="button"
@@ -77,8 +78,8 @@ export function Nav() {
               {l.label}
             </Link>
           ))}
-          <ButtonLink href="/mission/001" className="mt-2 w-full" onClick={() => setOpen(false)}>
-            Start mission
+          <ButtonLink href="/missions" className="mt-2 w-full" onClick={() => setOpen(false)}>
+            Browse missions
           </ButtonLink>
         </div>
       )}

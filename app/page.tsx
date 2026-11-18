@@ -6,7 +6,8 @@ import { HeroCopy } from "@/components/landing/HeroCopy";
 import { DecisionMock, StepArt, ThermalChart, TutorialMock } from "@/components/landing/Illustrations";
 import { ButtonLink } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
-import { missions } from "@/data/missions";
+import { missionList, missions } from "@/data/missions";
+import { MissionGrid } from "@/components/missions/MissionGrid";
 import { STEPS } from "@/components/landing/steps";
 
 const mission = missions["001"];
@@ -72,11 +73,11 @@ export default function Home() {
       {/* Mission teaser */}
       <Section
         tone="surface"
-        title={`Mission 001: ${mission.title}`}
+        title={`Featured: ${mission.title}`}
         intro={mission.ticket.symptom.split(". ")[0] + "."}
         action={
           <Link href="/missions" className="inline-flex items-center gap-2 font-medium text-fg hover:text-accent-ink">
-            Read the full brief <ArrowRight className="size-4" />
+            See all missions <ArrowRight className="size-4" />
           </Link>
         }
       >
@@ -100,6 +101,18 @@ export default function Home() {
             </ButtonLink>
           </div>
         </div>
+      </Section>
+
+      <Section
+        title={`${missionList.length} missions on the bench`}
+        intro="Charging faults, swollen batteries, failing drives, coffee spills, black screens and more. Each one scored out of 100."
+        action={
+          <Link href="/missions" className="inline-flex items-center gap-2 font-medium text-fg hover:text-accent-ink">
+            Browse all missions <ArrowRight className="size-4" />
+          </Link>
+        }
+      >
+        <MissionGrid filters={false} limit={6} />
       </Section>
 
       <CtaBand title="A laptop on bench 3 is overheating." body="Six minutes, one device, and every decision is yours." />

@@ -6,7 +6,8 @@ import { ArrowRight, Check, RotateCcw, X } from "lucide-react";
 import { getMission, type Mission, type Question } from "@/data/missions";
 import { isCorrect, type MissionProgress, type QuestionKind } from "@/lib/mission-engine";
 import { computeScore, rating, type CategoryScore } from "@/lib/scoring";
-import { useMissionRun, useMissionStore } from "@/store/mission-store";
+import { useDevice, useMissionRun, useMissionStore } from "@/store/mission-store";
+import { CareerCard } from "@/components/career/CareerCard";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 
@@ -18,7 +19,7 @@ export function ResultsView() {
 
   if (!mission) {
     return (
-      <Empty title="That mission doesn't exist" body="The results link points to a mission we don't have. Mission 001 is available now." />
+      <Empty title="That mission doesn't exist" body="The results link points to a mission we don't have. Pick one from the missions list." />
     );
   }
   if (!run) return <div className="min-h-96" aria-busy="true" />;
@@ -29,10 +30,11 @@ export function ResultsView() {
         title={started ? "Finish the mission to see results" : "No results yet"}
         body={
           started
-            ? "You're partway through Mission 001. Your progress is saved, so you can pick up where you left off."
-            : "Complete Mission 001 and your score, answers, and explanations will show up here."
+            ? `You're partway through ${mission.code}. Your progress is saved, so you can pick up where you left off.`
+            : `Complete ${mission.code} and your score, answers, and explanations will show up here.`
         }
-        cta={started ? "Continue mission" : "Start Mission 001"}
+        cta={started ? "Continue mission" : `Start ${mission.code}`}
+        href={`/mission/${mission.id}`}
       />
     );
   }
@@ -47,6 +49,7 @@ function Report({ mission, run }: { mission: Mission; run: MissionProgress }) {
   const minutes =
     run.startedAt && run.completedAt ? Math.max(1, Math.round((run.completedAt - run.startedAt) / 60000)) : null;
   const safeOk = isCorrect(mission, "safety", run.answers.safety);
+  const device = useDevice();
 
   const retry = () => {
     reset(mission.id);
@@ -58,7 +61,8 @@ function Report({ mission, run }: { mission: Mission; run: MissionProgress }) {
       <Container className="grid gap-12 pb-16 pt-12 lg:grid-cols-12 lg:pt-20">
         <div className="space-y-6 lg:col-span-7">
           <p className="text-sm font-medium text-accent-ink">
-            Mission {mission.id} complete{minutes ? ` · ${minutes} min` : ""}
+            Technician report · {mission.code} closed on the {device.name}
+            {minutes ? ` · ${minutes} min` : ""}
           </p>
           <h1 className="text-5xl font-semibold leading-none tracking-tight sm:text-6xl">{r.title}</h1>
           <p className="max-w-lg text-lg leading-relaxed text-muted">{r.blurb}</p>
@@ -66,8 +70,8 @@ function Report({ mission, run }: { mission: Mission; run: MissionProgress }) {
             <Button size="lg" onClick={retry}>
               <RotateCcw className="size-4" /> Retry mission
             </Button>
-            <ButtonLink href="/" size="lg" variant="secondary">
-              Back to home
+            <ButtonLink href="/shift" size="lg" variant="secondary">
+              Next ticket
             </ButtonLink>
           </div>
         </div>
@@ -105,7 +109,11 @@ function Report({ mission, run }: { mission: Mission; run: MissionProgress }) {
           <Verdict
             title="Diagnosis"
             ok={isCorrect(mission, "diagnosis", run.answers.diagnosis)}
-            text={isCorrect(mission, "diagnosis", run.answers.diagnosis) ? "You traced the heat to restricted airflow." : "The clues pointed at blocked airflow, not this answer."}
+            text={
+              isCorrect(mission, "diagnosis", run.answers.diagnosis)
+                ? `You found the cause: ${mission.diagnosis.choices.find((c) => c.correct)?.text.toLowerCase()}.`
+                : `The clues pointed at ${mission.diagnosis.choices.find((c) => c.correct)?.text.toLowerCase()}, not this answer.`
+            }
           />
           <Verdict
             title="Repair decision"
@@ -118,6 +126,13 @@ function Report({ mission, run }: { mission: Mission; run: MissionProgress }) {
                   : "That action wouldn't fix the fault."
             }
           />
+        </Container>
+      </section>
+
+      <section className="border-t border-line py-16">
+        <Container>
+          <h2 className="mb-6 text-3xl font-semibold tracking-tight">Career</h2>
+          <CareerCard />
         </Container>
       </section>
 
@@ -241,12 +256,22 @@ function AnswerReview({
   );
 }
 
-function Empty({ title, body, cta = "Start Mission 001" }: { title: string; body: string; cta?: string }) {
+function Empty({
+  title,
+  body,
+  cta = "Browse missions",
+  href = "/missions",
+}: {
+  title: string;
+  body: string;
+  cta?: string;
+  href?: string;
+}) {
   return (
     <Container className="py-32">
       <h1 className="mb-4 text-4xl font-semibold tracking-tight sm:text-5xl">{title}</h1>
       <p className="mb-8 max-w-lg text-lg leading-relaxed text-muted">{body}</p>
-      <ButtonLink href="/mission/001" size="lg">
+      <ButtonLink href={href} size="lg">
         {cta} <ArrowRight className="size-4" />
       </ButtonLink>
     </Container>

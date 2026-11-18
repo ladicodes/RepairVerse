@@ -24,8 +24,8 @@ export function HeroCopy() {
       </motion.p>
 
       <motion.div {...item(2)} className="flex flex-wrap items-center gap-x-6 gap-y-4">
-        <ButtonLink href="/mission/001" size="lg">
-          Start repair mission <ArrowRight className="size-4" />
+        <ButtonLink href="/missions" size="lg">
+          Browse missions <ArrowRight className="size-4" />
         </ButtonLink>
         <ButtonLink href="/how-it-works" variant="plain" className="px-0 text-base">
           How a mission works

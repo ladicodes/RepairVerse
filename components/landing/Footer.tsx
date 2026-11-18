@@ -17,7 +17,7 @@ export function Footer() {
         <FooterCol
           title="Product"
           links={[
-            ["/missions", "Mission 001"],
+            ["/missions", "Missions"],
             ["/how-it-works", "How it works"],
             ["/results", "Your last result"],
           ]}

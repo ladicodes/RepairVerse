@@ -1,0 +1,1 @@
+Introducing RepairVerse: learn real-world repair skills in 3D. Open a virtual laptop, find the fault, make the technician's call. Every choice is scored and explained. Built for the Aholo Global 3D AI Hackathon.

@@ -5,7 +5,13 @@ import { useFrame } from "@react-three/fiber";
 import { Instance, Instances, Sparkles } from "@react-three/drei";
 import * as THREE from "three";
 import { makeGlowTexture } from "./textures";
-import { makeBatteryTexture, makePcbTexture, makeRamTexture, makeSsdTexture, makeWifiTexture } from "./hardwareTextures";
+import {
+  makeBatteryTexture,
+  makePcbTexture,
+  makeRamTexture,
+  makeSsdTexture,
+  makeWifiTexture,
+} from "./hardwareTextures";
 
 /**
  * Supplementary educational illustration of a laptop's insides, laid out like a
@@ -33,7 +39,11 @@ function blowerShape(r: number, outlet: number) {
 
 /** Shape lying flat on xz, extruded upward by `h`. Shape +y maps to world -z. */
 function flatExtrude(shape: THREE.Shape, h: number) {
-  const g = new THREE.ExtrudeGeometry(shape, { depth: h, bevelEnabled: false, curveSegments: 40 });
+  const g = new THREE.ExtrudeGeometry(shape, {
+    depth: h,
+    bevelEnabled: false,
+    curveSegments: 40,
+  });
   g.rotateX(-Math.PI / 2);
   return g;
 }
@@ -108,12 +118,17 @@ export function Internals({
   powered,
   cooled,
   xray,
+  teardown = 0,
 }: {
   dusty: boolean;
   powered: boolean;
   cooled: boolean;
   xray: boolean;
+  /** 0 in place, 1 battery lifted out, 2 battery and fan lifted out. */
+  teardown?: number;
 }) {
+  const batteryRef = useRef<THREE.Group>(null);
+  const fanRef = useRef<THREE.Group>(null);
   const blades = useRef<THREE.Group>(null);
   const cpuMat = useRef<THREE.MeshStandardMaterial>(null);
   const tex = useTextures();
@@ -121,15 +136,48 @@ export function Internals({
   const pipes = useHeatPipes();
 
   useFrame((state, dt) => {
+    // Take-apart: parts lift clear of the chassis, then return when reassembled.
+    const out = xray ? teardown : 0;
+    const b = batteryRef.current;
+    if (b) {
+      b.position.y = THREE.MathUtils.damp(
+        b.position.y,
+        out >= 1 ? 0.45 : 0,
+        6,
+        dt,
+      );
+      b.position.z = THREE.MathUtils.damp(
+        b.position.z,
+        out >= 1 ? 0.9 : 0,
+        6,
+        dt,
+      );
+    }
+    const f = fanRef.current;
+    if (f)
+      f.position.y = THREE.MathUtils.damp(
+        f.position.y,
+        out >= 2 ? 0.55 : 0,
+        6,
+        dt,
+      );
     const speed = powered ? (dusty ? 9 : 22) : 0.4;
     if (blades.current) {
       blades.current.rotation.y -= dt * speed;
       // Strained wobble when dusty and running
-      blades.current.position.y = FAN.floor + (powered && dusty ? Math.sin(state.clock.elapsedTime * 40) * 0.0015 : 0);
+      blades.current.position.y =
+        FAN.floor +
+        (powered && dusty
+          ? Math.sin(state.clock.elapsedTime * 40) * 0.0015
+          : 0);
     }
     if (cpuMat.current) {
       const pulse = 0.5 + Math.sin(state.clock.elapsedTime * 3) * 0.5;
-      cpuMat.current.emissiveIntensity = cooled ? 0.4 : powered ? 1.2 + pulse * 1.0 : 0.5;
+      cpuMat.current.emissiveIntensity = cooled
+        ? 0.4
+        : powered
+          ? 1.2 + pulse * 1.0
+          : 0.5;
     }
   });
 
@@ -139,7 +187,11 @@ export function Internals({
   return (
     <group>
       {/* Chassis tray: black plastic with screw bosses */}
-      <mesh position={[0, 0.012, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <mesh
+        position={[0, 0.012, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        receiveShadow
+      >
         <planeGeometry args={[3.08, 2.08]} />
         <meshStandardMaterial color="#17191d" roughness={0.85} />
       </mesh>
@@ -147,8 +199,18 @@ export function Internals({
         <cylinderGeometry args={[0.026, 0.03, 0.03, 16]} />
         <meshStandardMaterial color="#202328" roughness={0.7} />
         {[
-          [-1.48, -0.98], [-0.4, -1.0], [0.4, -1.0], [1.48, -0.98], [-1.48, 0.2], [1.48, 0.0],
-          [-1.48, 0.98], [-0.6, 1.0], [0.6, 1.0], [1.48, 0.98], [-1.1, 0.25], [1.1, 0.25],
+          [-1.48, -0.98],
+          [-0.4, -1.0],
+          [0.4, -1.0],
+          [1.48, -0.98],
+          [-1.48, 0.2],
+          [1.48, 0.0],
+          [-1.48, 0.98],
+          [-0.6, 1.0],
+          [0.6, 1.0],
+          [1.48, 0.98],
+          [-1.1, 0.25],
+          [1.1, 0.25],
         ].map(([x, z], i) => (
           <Instance key={i} position={[x, 0.027, z]} />
         ))}
@@ -156,28 +218,57 @@ export function Internals({
 
       {/* Motherboard */}
       <group>
-        <mesh position={[(PCB.x0 + PCB.x1) / 2, PCB.y, (PCB.z0 + PCB.z1) / 2]} receiveShadow>
+        <mesh
+          position={[(PCB.x0 + PCB.x1) / 2, PCB.y, (PCB.z0 + PCB.z1) / 2]}
+          receiveShadow
+        >
           <boxGeometry args={[PCB.x1 - PCB.x0, PCB.t, PCB.z1 - PCB.z0]} />
           <meshStandardMaterial color="#0f4566" roughness={0.6} />
         </mesh>
-        <mesh position={[(PCB.x0 + PCB.x1) / 2, PCB_TOP + 0.0005, (PCB.z0 + PCB.z1) / 2]} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh
+          position={[
+            (PCB.x0 + PCB.x1) / 2,
+            PCB_TOP + 0.0005,
+            (PCB.z0 + PCB.z1) / 2,
+          ]}
+          rotation={[-Math.PI / 2, 0, 0]}
+        >
           <planeGeometry args={[PCB.x1 - PCB.x0, PCB.z1 - PCB.z0]} />
-          <meshStandardMaterial map={tex.pcb} roughness={0.45} metalness={0.15} color={tex.pcb ? "#ffffff" : "#14557a"} />
+          <meshStandardMaterial
+            map={tex.pcb}
+            roughness={0.45}
+            metalness={0.15}
+            color={tex.pcb ? "#ffffff" : "#14557a"}
+          />
         </mesh>
 
         {/* VRM: row of black inductors and polymer capacitors beside the CPU */}
         <Instances limit={8}>
           <boxGeometry args={[0.055, 0.03, 0.055]} />
-          <meshStandardMaterial color="#202226" roughness={0.6} metalness={0.3} />
+          <meshStandardMaterial
+            color="#202226"
+            roughness={0.6}
+            metalness={0.3}
+          />
           {Array.from({ length: 6 }).map((_, i) => (
-            <Instance key={i} position={[-0.7 + i * 0.07, PCB_TOP + 0.015, -0.26]} />
+            <Instance
+              key={i}
+              position={[-0.7 + i * 0.07, PCB_TOP + 0.015, -0.26]}
+            />
           ))}
         </Instances>
         <Instances limit={8}>
           <cylinderGeometry args={[0.018, 0.018, 0.034, 16]} />
-          <meshStandardMaterial color="#c9ccd1" roughness={0.3} metalness={0.9} />
+          <meshStandardMaterial
+            color="#c9ccd1"
+            roughness={0.3}
+            metalness={0.9}
+          />
           {Array.from({ length: 5 }).map((_, i) => (
-            <Instance key={i} position={[-0.68 + i * 0.08, PCB_TOP + 0.017, -0.18]} />
+            <Instance
+              key={i}
+              position={[-0.68 + i * 0.08, PCB_TOP + 0.017, -0.18]}
+            />
           ))}
         </Instances>
 
@@ -204,7 +295,10 @@ export function Internals({
             <boxGeometry args={[0.62, 0.006, 0.27]} />
             <meshStandardMaterial color="#1f6b3a" roughness={0.5} />
           </mesh>
-          <mesh position={[0, 0.0275, 0.02]} rotation={[-Math.PI / 2, 0, Math.PI]}>
+          <mesh
+            position={[0, 0.0275, 0.02]}
+            rotation={[-Math.PI / 2, 0, Math.PI]}
+          >
             <planeGeometry args={[0.62, 0.27]} />
             <meshStandardMaterial map={tex.ram} roughness={0.5} />
           </mesh>
@@ -212,7 +306,11 @@ export function Internals({
           {[-1, 1].map((s) => (
             <mesh key={s} position={[s * 0.34, 0.016, 0.02]}>
               <boxGeometry args={[0.02, 0.03, 0.08]} />
-              <meshStandardMaterial color="#c4c8ce" metalness={0.9} roughness={0.3} />
+              <meshStandardMaterial
+                color="#c4c8ce"
+                metalness={0.9}
+                roughness={0.3}
+              />
             </mesh>
           ))}
         </group>
@@ -229,7 +327,11 @@ export function Internals({
           </mesh>
           <mesh position={[-0.37, 0.012, 0]}>
             <cylinderGeometry args={[0.02, 0.02, 0.012, 16]} />
-            <meshStandardMaterial color="#c4c8ce" metalness={0.9} roughness={0.3} />
+            <meshStandardMaterial
+              color="#c4c8ce"
+              metalness={0.9}
+              roughness={0.3}
+            />
           </mesh>
         </group>
 
@@ -237,7 +339,11 @@ export function Internals({
         <group position={[-1.32, PCB_TOP, -0.55]}>
           <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
             <planeGeometry args={[0.2, 0.27]} />
-            <meshStandardMaterial map={tex.wifi} roughness={0.5} metalness={0.2} />
+            <meshStandardMaterial
+              map={tex.wifi}
+              roughness={0.5}
+              metalness={0.2}
+            />
           </mesh>
           {[
             [-0.04, "#111"],
@@ -254,7 +360,11 @@ export function Internals({
         {[-0.5, -0.3, -0.1].map((z, i) => (
           <mesh key={i} position={[-1.48, PCB_TOP + 0.025, z]}>
             <boxGeometry args={[0.16, 0.045, i === 1 ? 0.13 : 0.12]} />
-            <meshStandardMaterial color="#c4c8ce" metalness={0.9} roughness={0.35} />
+            <meshStandardMaterial
+              color="#c4c8ce"
+              metalness={0.9}
+              roughness={0.35}
+            />
           </mesh>
         ))}
       </group>
@@ -263,16 +373,30 @@ export function Internals({
       <group position={[CPU.x, PCB_TOP, CPU.z]}>
         <mesh position={[0, 0.003, 0]}>
           <boxGeometry args={[0.32, 0.006, 0.24]} />
-          <meshStandardMaterial ref={cpuMat} color="#245a3a" emissive={heatColor} emissiveIntensity={1.2} roughness={0.5} />
+          <meshStandardMaterial
+            ref={cpuMat}
+            color="#245a3a"
+            emissive={heatColor}
+            emissiveIntensity={1.2}
+            roughness={0.5}
+          />
         </mesh>
         <mesh position={[0, 0.012, 0]}>
           <boxGeometry args={[0.26, 0.012, 0.2]} />
-          <meshStandardMaterial color="#c47a45" metalness={0.95} roughness={0.28} />
+          <meshStandardMaterial
+            color="#c47a45"
+            metalness={0.95}
+            roughness={0.28}
+          />
         </mesh>
         {[0.62, -0.62].map((a) => (
           <mesh key={a} position={[0, 0.021, 0]} rotation={[0, a, 0]}>
             <boxGeometry args={[0.52, 0.004, 0.05]} />
-            <meshStandardMaterial color="#1b1d21" metalness={0.6} roughness={0.4} />
+            <meshStandardMaterial
+              color="#1b1d21"
+              metalness={0.6}
+              roughness={0.4}
+            />
           </mesh>
         ))}
         {[
@@ -283,7 +407,11 @@ export function Internals({
         ].map(([x, z], i) => (
           <mesh key={i} position={[x, 0.024, z]}>
             <cylinderGeometry args={[0.022, 0.022, 0.012, 16]} />
-            <meshStandardMaterial color="#b8bcc2" metalness={0.9} roughness={0.3} />
+            <meshStandardMaterial
+              color="#b8bcc2"
+              metalness={0.9}
+              roughness={0.3}
+            />
           </mesh>
         ))}
       </group>
@@ -291,59 +419,115 @@ export function Internals({
       {/* Flattened copper heat pipes */}
       {pipes.map((g, i) => (
         <mesh key={i} geometry={g} scale={[1, 0.55, 1]} position={[0, 0.03, 0]}>
-          <meshStandardMaterial color="#c47a45" metalness={0.95} roughness={0.25} />
+          <meshStandardMaterial
+            color="#c47a45"
+            metalness={0.95}
+            roughness={0.25}
+          />
         </mesh>
       ))}
 
       {/* Blower fan */}
-      <group position={[FAN.x, 0, FAN.z]}>
-        <mesh geometry={fan.base} position={[0, FAN.floor - 0.004, 0]}>
-          <meshStandardMaterial color="#b3b9c1" metalness={0.85} roughness={0.35} />
-        </mesh>
-        <mesh geometry={fan.wall} position={[0, FAN.floor, 0]}>
-          <meshStandardMaterial color="#141518" roughness={0.6} />
-        </mesh>
-        <group ref={blades} position={[0, FAN.floor, 0]}>
-          <mesh position={[0, FAN.h * 0.45, 0]}>
-            <cylinderGeometry args={[FAN.r * 0.32, FAN.r * 0.32, FAN.h * 0.8, 32]} />
-            <meshStandardMaterial color={dusty ? "#3d4046" : "#18191c"} roughness={0.5} />
+      <group ref={fanRef}>
+        <group position={[FAN.x, 0, FAN.z]}>
+          <mesh geometry={fan.base} position={[0, FAN.floor - 0.004, 0]}>
+            <meshStandardMaterial
+              color="#b3b9c1"
+              metalness={0.85}
+              roughness={0.35}
+            />
           </mesh>
-          <Instances limit={BLADES} geometry={fan.blade}>
-            <meshStandardMaterial color={dusty ? "#55595f" : "#1c1d20"} roughness={dusty ? 0.95 : 0.45} />
-            {Array.from({ length: BLADES }).map((_, i) => {
-              const a = (i / BLADES) * Math.PI * 2;
-              const rr = FAN.r * 0.62;
-              return <Instance key={i} position={[Math.cos(a) * rr, FAN.h * 0.42, Math.sin(a) * rr]} rotation={[0, -a + 0.45, 0]} />;
-            })}
-          </Instances>
+          <mesh geometry={fan.wall} position={[0, FAN.floor, 0]}>
+            <meshStandardMaterial color="#141518" roughness={0.6} />
+          </mesh>
+          <group ref={blades} position={[0, FAN.floor, 0]}>
+            <mesh position={[0, FAN.h * 0.45, 0]}>
+              <cylinderGeometry
+                args={[FAN.r * 0.32, FAN.r * 0.32, FAN.h * 0.8, 32]}
+              />
+              <meshStandardMaterial
+                color={dusty ? "#3d4046" : "#18191c"}
+                roughness={0.5}
+              />
+            </mesh>
+            <Instances limit={BLADES} geometry={fan.blade}>
+              <meshStandardMaterial
+                color={dusty ? "#55595f" : "#1c1d20"}
+                roughness={dusty ? 0.95 : 0.45}
+              />
+              {Array.from({ length: BLADES }).map((_, i) => {
+                const a = (i / BLADES) * Math.PI * 2;
+                const rr = FAN.r * 0.62;
+                return (
+                  <Instance
+                    key={i}
+                    position={[
+                      Math.cos(a) * rr,
+                      FAN.h * 0.42,
+                      Math.sin(a) * rr,
+                    ]}
+                    rotation={[0, -a + 0.45, 0]}
+                  />
+                );
+              })}
+            </Instances>
+          </group>
+          <mesh geometry={fan.cover} position={[0, FAN.floor + FAN.h, 0]}>
+            <meshStandardMaterial
+              color="#c9ced5"
+              metalness={0.85}
+              roughness={0.32}
+            />
+          </mesh>
+          {/* Model sticker on the cover */}
+          <mesh
+            position={[FAN.r * 0.55, FAN.floor + FAN.h + 0.0045, -0.3]}
+            rotation={[-Math.PI / 2, 0, 0]}
+          >
+            <planeGeometry args={[0.16, 0.08]} />
+            <meshStandardMaterial color="#eef0f2" roughness={0.8} />
+          </mesh>
+          {dusty && (
+            <>
+              <mesh
+                position={[0, FAN.floor + FAN.h + 0.005, 0]}
+                rotation={[-Math.PI / 2, 0, 0]}
+              >
+                <ringGeometry args={[FAN.r * 0.55, FAN.r * 0.8, 48]} />
+                <meshStandardMaterial
+                  color={dustColor}
+                  transparent
+                  opacity={0.55}
+                  roughness={1}
+                />
+              </mesh>
+              <mesh
+                position={[0, FAN.floor + FAN.h * 0.9, 0]}
+                rotation={[-Math.PI / 2, 0, 0]}
+              >
+                <circleGeometry args={[FAN.r * 0.66, 48]} />
+                <meshStandardMaterial
+                  color={dustColor}
+                  transparent
+                  opacity={0.3}
+                  roughness={1}
+                  depthWrite={false}
+                />
+              </mesh>
+            </>
+          )}
         </group>
-        <mesh geometry={fan.cover} position={[0, FAN.floor + FAN.h, 0]}>
-          <meshStandardMaterial color="#c9ced5" metalness={0.85} roughness={0.32} />
-        </mesh>
-        {/* Model sticker on the cover */}
-        <mesh position={[FAN.r * 0.55, FAN.floor + FAN.h + 0.0045, -0.3]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[0.16, 0.08]} />
-          <meshStandardMaterial color="#eef0f2" roughness={0.8} />
-        </mesh>
-        {dusty && (
-          <>
-            <mesh position={[0, FAN.floor + FAN.h + 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-              <ringGeometry args={[FAN.r * 0.55, FAN.r * 0.8, 48]} />
-              <meshStandardMaterial color={dustColor} transparent opacity={0.55} roughness={1} />
-            </mesh>
-            <mesh position={[0, FAN.floor + FAN.h * 0.9, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-              <circleGeometry args={[FAN.r * 0.66, 48]} />
-              <meshStandardMaterial color={dustColor} transparent opacity={0.3} roughness={1} depthWrite={false} />
-            </mesh>
-          </>
-        )}
       </group>
 
       {/* Heatsink fin stack at the rear exhaust */}
       <group position={[0.92, FAN.floor, -0.95]}>
         <Instances limit={40}>
           <boxGeometry args={[0.006, 0.07, 0.13]} />
-          <meshStandardMaterial color="#c3c8cf" metalness={0.9} roughness={0.3} />
+          <meshStandardMaterial
+            color="#c3c8cf"
+            metalness={0.9}
+            roughness={0.3}
+          />
           {Array.from({ length: 36 }).map((_, i) => (
             <Instance key={i} position={[-0.35 + i * 0.02, 0.035, 0]} />
           ))}
@@ -351,7 +535,12 @@ export function Internals({
         {dusty && (
           <mesh position={[0, 0.035, 0.07]}>
             <boxGeometry args={[0.72, 0.066, 0.02]} />
-            <meshStandardMaterial color={dustColor} transparent opacity={0.85} roughness={1} />
+            <meshStandardMaterial
+              color={dustColor}
+              transparent
+              opacity={0.85}
+              roughness={1}
+            />
           </mesh>
         )}
       </group>
@@ -366,34 +555,58 @@ export function Internals({
         ))}
         {dusty &&
           [-0.25, -0.05, 0.12, 0.28].map((z, i) => (
-            <mesh key={i} position={[0.015, -0.005 + (i % 2) * 0.01, z]} rotation={[i * 0.6, 0, 0]}>
+            <mesh
+              key={i}
+              position={[0.015, -0.005 + (i % 2) * 0.01, z]}
+              rotation={[i * 0.6, 0, 0]}
+            >
               <boxGeometry args={[0.012, 0.05, 0.12]} />
-              <meshStandardMaterial color="#9aa0aa" transparent opacity={0.8} roughness={1} />
+              <meshStandardMaterial
+                color="#9aa0aa"
+                transparent
+                opacity={0.8}
+                roughness={1}
+              />
             </mesh>
           ))}
       </group>
 
       {/* Battery: wide black pack with printed label, cable to the board */}
-      <group position={[0, 0.012, 0.56]}>
-        <mesh position={[0, 0.035, 0]} castShadow>
-          <boxGeometry args={[2.0, 0.07, 0.62]} />
-          <meshStandardMaterial color="#131417" roughness={0.55} />
-        </mesh>
-        <mesh position={[0, 0.0705, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[2.0, 0.62]} />
-          <meshStandardMaterial map={tex.battery} roughness={0.5} color={tex.battery ? "#ffffff" : "#131417"} />
-        </mesh>
-        {/* Mounting tabs */}
-        {[-0.85, 0.85].map((x) => (
-          <mesh key={x} position={[x, 0.004, -0.33]}>
-            <boxGeometry args={[0.12, 0.008, 0.08]} />
-            <meshStandardMaterial color="#b8bcc2" metalness={0.9} roughness={0.35} />
+      <group ref={batteryRef}>
+        <group position={[0, 0.012, 0.56]}>
+          <mesh position={[0, 0.035, 0]} castShadow>
+            <boxGeometry args={[2.0, 0.07, 0.62]} />
+            <meshStandardMaterial color="#131417" roughness={0.55} />
           </mesh>
-        ))}
-        <mesh position={[0.3, 0.02, -0.38]}>
-          <boxGeometry args={[0.16, 0.006, 0.16]} />
-          <meshStandardMaterial color="#d08a2b" roughness={0.5} transparent opacity={0.9} />
-        </mesh>
+          <mesh position={[0, 0.0705, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[2.0, 0.62]} />
+            <meshStandardMaterial
+              map={tex.battery}
+              roughness={0.5}
+              color={tex.battery ? "#ffffff" : "#131417"}
+            />
+          </mesh>
+          {/* Mounting tabs */}
+          {[-0.85, 0.85].map((x) => (
+            <mesh key={x} position={[x, 0.004, -0.33]}>
+              <boxGeometry args={[0.12, 0.008, 0.08]} />
+              <meshStandardMaterial
+                color="#b8bcc2"
+                metalness={0.9}
+                roughness={0.35}
+              />
+            </mesh>
+          ))}
+          <mesh position={[0.3, 0.02, -0.38]}>
+            <boxGeometry args={[0.16, 0.006, 0.16]} />
+            <meshStandardMaterial
+              color="#d08a2b"
+              roughness={0.5}
+              transparent
+              opacity={0.9}
+            />
+          </mesh>
+        </group>
       </group>
 
       {/* Speakers in the front corners */}
@@ -411,17 +624,38 @@ export function Internals({
       ].map(([x, color], i) => (
         <mesh key={i} position={[x as number, 0.03, 0.2]}>
           <boxGeometry args={[0.18, 0.003, 0.18]} />
-          <meshStandardMaterial color={color as string} roughness={0.5} transparent opacity={0.9} />
+          <meshStandardMaterial
+            color={color as string}
+            roughness={0.5}
+            transparent
+            opacity={0.9}
+          />
         </mesh>
       ))}
 
       {/* Heat / cooling halo */}
       {tex.glow && xray && (
-        <sprite position={[0.3, 0.25, -0.62]} scale={cooled ? [1.6, 1.0, 1] : [2.6, 1.6, 1]}>
-          <spriteMaterial map={tex.glow} color={heatColor} transparent opacity={cooled ? 0.2 : powered ? 0.5 : 0.3} depthWrite={false} />
+        <sprite
+          position={[0.3, 0.25, -0.62]}
+          scale={cooled ? [1.6, 1.0, 1] : [2.6, 1.6, 1]}
+        >
+          <spriteMaterial
+            map={tex.glow}
+            color={heatColor}
+            transparent
+            opacity={cooled ? 0.2 : powered ? 0.5 : 0.3}
+            depthWrite={false}
+          />
         </sprite>
       )}
-      {xray && <pointLight position={[0.2, 0.4, -0.6]} color={heatColor} intensity={cooled ? 0.5 : 1.6} distance={2.5} />}
+      {xray && (
+        <pointLight
+          position={[0.2, 0.4, -0.6]}
+          color={heatColor}
+          intensity={cooled ? 0.5 : 1.6}
+          distance={2.5}
+        />
+      )}
 
       {dusty && xray && (
         <Sparkles

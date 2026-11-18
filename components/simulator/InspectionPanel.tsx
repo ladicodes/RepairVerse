@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import { Check } from "lucide-react";
 import type { Mission } from "@/data/missions";
+import { TOOLS, toolReading, type ToolId } from "@/lib/tools";
 
 export function InspectionPanel({
   mission,
@@ -10,6 +11,7 @@ export function InspectionPanel({
   activeId,
   canScore,
   panelOpen,
+  tool = "inspect",
   onSelect,
 }: {
   mission: Mission;
@@ -17,6 +19,7 @@ export function InspectionPanel({
   activeId: string | null;
   canScore: boolean;
   panelOpen: boolean;
+  tool?: ToolId;
   onSelect: (id: string) => void;
 }) {
   const active = mission.hotspots.find((h) => h.id === activeId);
@@ -89,6 +92,11 @@ export function InspectionPanel({
             <p className="mb-1 text-sm font-medium text-fg">What you found</p>
             <p className="leading-relaxed text-fg">{active.clue}</p>
           </div>
+          {tool !== "inspect" ? (
+            <Reading mission={mission} hotspotId={active.id} tool={tool} />
+          ) : (
+            <p className="text-sm text-dim">Pick the thermal camera or multimeter in the tool tray to measure this part.</p>
+          )}
         </article>
       ) : (
         <p className="text-sm text-muted">Pick a numbered part on the laptop or in the list.</p>
@@ -115,5 +123,29 @@ export function ClueList({ mission, inspected }: { mission: Mission; inspected: 
         ))}
       </ul>
     </details>
+  );
+}
+
+function Reading({ mission, hotspotId, tool }: { mission: Mission; hotspotId: string; tool: Exclude<ToolId, "inspect"> }) {
+  const hotspot = mission.hotspots.find((h) => h.id === hotspotId);
+  if (!hotspot) return null;
+  const r = toolReading(mission, hotspot, tool);
+  const label = TOOLS.find((t) => t.id === tool)?.label;
+  return (
+    <div className="flex items-center gap-4 rounded-xl border border-line-strong bg-bg p-4">
+      <div
+        className={clsx(
+          "min-w-28 rounded-lg px-3 py-2 text-center font-mono text-xl font-semibold tabular-nums",
+          tool === "meter" ? "bg-[#c9d6a3] text-[#1b2410]" : "bg-gradient-to-r from-[#3b0764] via-[#dc2626] to-[#fde047] text-white",
+          r.tone === "bad" && tool === "meter" && "ring-2 ring-heat",
+        )}
+      >
+        {r.value}
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm text-dim">{label}</p>
+        <p className={clsx("leading-snug", r.tone === "bad" ? "text-heat" : r.tone === "ok" ? "text-ok" : "text-fg")}>{r.note}</p>
+      </div>
+    </div>
   );
 }

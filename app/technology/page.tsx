@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import { photoCredits } from "@/data/credits";
+import { getDevice } from "@/data/devices";
+import { DevicePrompt } from "@/components/landing/DevicePrompt";
 import { Box, FileCode2, MousePointerClick, TextCursorInput } from "lucide-react";
 import { MarketingShell, PageHeader, Section, CtaBand } from "@/components/landing/Marketing";
 import { AssetAttribution } from "@/components/landing/AssetAttribution";
 import { HeroVisual } from "@/components/landing/HeroVisual";
-import { missions } from "@/data/missions";
 
-const mission = missions["001"];
 
 export const metadata: Metadata = {
   title: "Lux3D pipeline · RepairVerse",
@@ -52,11 +53,10 @@ export default function TechnologyPage() {
         </ol>
       </Section>
 
-      <Section title="The prompt for Mission 001" intro="The exact text used to generate the laptop.">
+      <Section title="The prompt behind the model" intro="The exact text sent to Lux3D for the laptop on your bench. Each of the 50 laptops has its own.">
         <div className="grid gap-6 lg:grid-cols-12">
           <div className="rounded-3xl border border-line bg-fg p-6 text-surface lg:col-span-5 sm:p-8">
-            <p className="mb-4 text-sm text-gray-300">Prompt</p>
-            <p className="font-mono text-lg leading-relaxed">{mission.model.prompt}</p>
+            <DevicePrompt />
           </div>
           <div className="lg:col-span-7">
             <HeroVisual />
@@ -98,7 +98,34 @@ export default function TechnologyPage() {
         </dl>
       </Section>
 
-      <CtaBand title="See the model up close." body="Rotate it, zoom in, and open the bottom panel in Mission 001." />
+      <Section
+        title="Photo credits"
+        intro="Some laptops are generated from a photo with Lux3D image-to-3D. These photos are freely licensed on Wikimedia Commons. Models made from CC BY-SA photos are shared under the same license."
+      >
+        <ul className="divide-y divide-line border-y border-line">
+          {photoCredits.map((c) => {
+            const device = getDevice(c.deviceId);
+            return (
+              <li key={c.deviceId} className="flex flex-col gap-1 py-4 sm:flex-row sm:items-baseline sm:justify-between">
+                <span className="font-medium">
+                  {device.brand} {device.name}
+                </span>
+                <span className="text-sm text-muted">
+                  <a href={c.source} className="underline underline-offset-2 hover:text-fg" rel="noreferrer" target="_blank">
+                    “{c.title}”
+                  </a>{" "}
+                  by {c.author},{" "}
+                  <a href={c.licenseUrl} className="underline underline-offset-2 hover:text-fg" rel="noreferrer" target="_blank">
+                    {c.license}
+                  </a>
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </Section>
+
+      <CtaBand title="See the model up close." body="Rotate it, zoom in, and open the bottom panel in any mission." />
     </MarketingShell>
   );
 }

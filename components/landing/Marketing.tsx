@@ -80,8 +80,8 @@ export function CtaBand({ title, body }: { title: string; body: string }) {
           <h2 className="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">{title}</h2>
           <p className="text-lg text-gray-300">{body}</p>
         </div>
-        <ButtonLink href="/mission/001" size="lg" variant="accent">
-          Start repair mission <ArrowRight className="size-4" />
+        <ButtonLink href="/missions" size="lg" variant="accent">
+          Browse missions <ArrowRight className="size-4" />
         </ButtonLink>
       </Container>
     </section>

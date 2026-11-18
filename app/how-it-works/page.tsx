@@ -18,8 +18,8 @@ export default function HowItWorks() {
         title="Practice the habit, not just the steps"
         intro="A mission is a ticket from a customer. You make it safe, inspect the device in 3D, decide what's wrong, and choose a fix. Each decision is explained, right or wrong."
       >
-        <ButtonLink href="/mission/001" size="lg">
-          Try Mission 001
+        <ButtonLink href="/missions" size="lg">
+          Browse missions
         </ButtonLink>
       </PageHeader>
 

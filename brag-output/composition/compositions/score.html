@@ -1,0 +1,23 @@
+<template>
+  <style>
+@font-face{font-family:"Geist";src:url("assets/fonts/geist-latin-var.woff2") format("woff2");font-weight:100 900}
+@font-face{font-family:"Geist Mono";src:url("assets/fonts/geist-mono-latin-var.woff2") format("woff2");font-weight:100 900}
+#root{position:absolute;inset:0;background:#f6f7f9;overflow:hidden;font-family:"Geist",sans-serif;color:#080d1b}
+#score-frame{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:50% 50%;overflow:hidden}
+#score-video{position:absolute;left:0;top:0;width:1920px;height:1080px;object-fit:contain}
+.cap{position:absolute;left:192px;bottom:118px;z-index:20}
+.cap .bar{display:inline-block;background:#080d1b;color:#fff;font-weight:520;font-size:44px;letter-spacing:-0.01em;line-height:1.15;padding:20px 30px 22px;border-radius:16px}
+  </style>
+  <div id="root" data-composition-id="score" data-width="1920" data-height="1080">
+    <div id="score-frame"><video id="score-video" class="clip" src="assets/walkthrough.mp4" muted playsinline data-start="0" data-duration="2.69" data-media-start="154.3" data-playback-rate="1" data-track-index="0"></video></div>
+    <div id="score-cap1" class="clip cap" data-start="0.3" data-duration="2.3" data-track-index="1"><span class="bar"><span class="cw">Every</span> <span class="cw">choice</span> <span class="cw">scored</span> <span class="cw">and</span> <span class="cw">explained</span></span></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#score-frame", { scale: 1.836, x: -672, y: 357 }, { scale: 1.7, duration: 0.5, ease: "expo.out" }, 0);
+    tl.fromTo("#score-cap1 .bar", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.4, ease: "expo.out" }, 0.3);
+    tl.fromTo("#score-cap1 .cw", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, stagger: 0.05, ease: "power2.out" }, 0.36);
+    tl.to("#score-cap1 .bar", { opacity: 0, filter: "blur(6px)", duration: 0.18, ease: "power3.in" }, 2.4);
+    window.__timelines["score"] = tl;
+  </script>
+</template>

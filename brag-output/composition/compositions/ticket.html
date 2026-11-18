@@ -1,0 +1,26 @@
+<template>
+  <style>
+@font-face{font-family:"Geist";src:url("assets/fonts/geist-latin-var.woff2") format("woff2");font-weight:100 900}
+@font-face{font-family:"Geist Mono";src:url("assets/fonts/geist-mono-latin-var.woff2") format("woff2");font-weight:100 900}
+#root{position:absolute;inset:0;background:#f6f7f9;overflow:hidden;font-family:"Geist",sans-serif;color:#080d1b}
+#ticket-line{position:absolute;left:192px;top:0;height:1080px;width:640px;display:flex;flex-direction:column;justify-content:center;gap:26px}
+#ticket-kicker{font-size:40px;font-weight:520;color:#0e7490;letter-spacing:-0.01em}
+#ticket-title{font-size:112px;line-height:0.98;font-weight:650;letter-spacing:-0.045em}
+#ticket-title .w{display:inline-block}
+#ticket-win{position:absolute;left:900px;top:140px;width:860px;height:800px;overflow:hidden;border-radius:30px;background:#ffffff;box-shadow:0 0 0 2px #cdd4de, 0 calc(26px + var(--energy, 0) * 18px) calc(60px + var(--energy, 0) * 30px) -24px rgb(8 13 27 / calc(0.22 + var(--energy, 0) * 0.16))}
+#ticket-cam{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0}
+#ticket-video{position:absolute;left:0;top:0;width:1920px;height:1080px;object-fit:contain}
+  </style>
+  <div id="root" data-composition-id="ticket" data-width="1920" data-height="1080">
+    <div id="ticket-win"><div id="ticket-cam"><video id="ticket-video" class="clip" src="assets/walkthrough.mp4" muted playsinline data-start="0" data-duration="3.7" data-media-start="63.6" data-playback-rate="1" data-track-index="0"></video></div></div>
+    <div id="ticket-text" class="clip" data-start="0" data-duration="3.7" data-track-index="1"><div id="ticket-line"><div id="ticket-kicker">Work order M-001</div><div id="ticket-title"><span class="w">Shuts</span> <span class="w">down</span> <span class="w">after</span> <span class="w">15</span> <span class="w">minutes.</span></div></div></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#ticket-win", { x: 90 }, { x: 0, duration: 0.7, ease: "expo.out" }, 0);
+    tl.fromTo("#ticket-cam", { scale: 1.32, x: -467.6, y: -35.6 }, { scale: 1.5, x: -500, y: -50, duration: 3.7, ease: "power1.inOut" }, 0);
+    tl.fromTo("#ticket-kicker", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2 }, 0.1);
+    tl.fromTo("#ticket-title .w", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.16, stagger: 0.07, ease: "power2.out" }, 0.2);
+    window.__timelines["ticket"] = tl;
+  </script>
+</template>

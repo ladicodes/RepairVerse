@@ -3,19 +3,37 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import { ArrowRight, Fan, PlugZap, RotateCcw, Thermometer, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ArrowRight,
+  BatteryLow,
+  Droplets,
+  Fan,
+  HardDrive,
+  Keyboard,
+  Laptop,
+  MemoryStick,
+  Monitor,
+  PlugZap,
+  RotateCcw,
+  Thermometer,
+  Wifi,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import clsx from "clsx";
-import { getMission, type Mission } from "@/data/missions";
+import { getMission, type Mission, type Reading, type ReadoutIcon } from "@/data/missions";
 import { canAdvance, isCorrect, type MissionProgress, type QuestionKind } from "@/lib/mission-engine";
 import { answerPenalty, computeScore } from "@/lib/scoring";
-import { useMissionRun, useMissionStore } from "@/store/mission-store";
+import { useDevice, useMissionRun, useMissionStore } from "@/store/mission-store";
 import { LogoMark } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
 import type { LaptopState } from "@/components/three/LaptopModel";
 import { QuestionCard } from "./QuestionCard";
 import { ClueList, InspectionPanel } from "./InspectionPanel";
 import { Stepper } from "./Stepper";
+import { DevicePicker } from "./DevicePicker";
+import type { ToolId } from "@/lib/tools";
 
 const DeviceViewer = dynamic(() => import("./DeviceViewer"), {
   ssr: false,
@@ -88,12 +106,20 @@ function TopBar({ mission, run }: { mission: Mission; run?: MissionProgress }) {
 
 function Briefing({ mission }: { mission: Mission }) {
   const advance = useMissionStore((s) => s.advance);
-  const laptop: LaptopState = { xray: false, dusty: true, powered: true, cooled: false };
+  const setDevice = useMissionStore((s) => s.setDevice);
+  const device = useDevice();
+  const laptop: LaptopState = {
+    xray: false,
+    dusty: mission.visual.dusty,
+    powered: true,
+    cooled: !mission.visual.hot,
+    screen: mission.screen.fault,
+  };
   return (
     <div className="min-h-dvh">
       <TopBar mission={mission} />
       <main className="grid w-full gap-8 px-4 py-8 sm:px-8 lg:grid-cols-12 lg:px-12 lg:py-12">
-        <div className="space-y-8 lg:col-span-5">
+        <div className="min-w-0 space-y-8 lg:col-span-5">
           <div className="space-y-4">
             <p className="text-sm font-medium text-accent-ink">New repair request</p>
             <h1 className="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">{mission.title}</h1>
@@ -103,7 +129,7 @@ function Briefing({ mission }: { mission: Mission }) {
           <article className="overflow-hidden rounded-3xl border border-line-strong bg-surface" aria-label="Work order">
             <header className="flex items-center justify-between border-b border-line bg-sunken px-5 py-3">
               <p className="font-mono text-sm">Work order {mission.code}</p>
-              <p className="text-sm text-muted">{mission.device}</p>
+              <p className="text-sm text-muted">{device.name}</p>
             </header>
             <div className="px-5 py-4">
               <p className="mb-2 text-sm text-dim">Intake notes</p>
@@ -117,6 +143,8 @@ function Briefing({ mission }: { mission: Mission }) {
               </ul>
             </div>
           </article>
+
+          <DevicePicker value={device.id} onChange={setDevice} showCooling={mission.category === "Cooling"} />
 
           <div>
             <p className="mb-3 font-medium">By the end you will be able to</p>
@@ -140,14 +168,15 @@ function Briefing({ mission }: { mission: Mission }) {
 
         <div className="h-96 sm:h-120 lg:col-span-7 lg:h-auto lg:min-h-152">
           <DeviceViewer
-            asset={mission.model}
+            asset={device.model}
+            look={device.look}
             laptop={laptop}
             hotspots={mission.hotspots}
             hotspotsEnabled={false}
             inspected={[]}
             activeId={null}
             onSelect={() => undefined}
-            hud={<Readout laptop={laptop} />}
+            hud={<Readout laptop={laptop} mission={mission} fixed={false} />}
           />
         </div>
       </main>
@@ -158,7 +187,7 @@ function Briefing({ mission }: { mission: Mission }) {
 /* ---------- Simulator (SAFETY_CHECK .. COMPLETED) ---------- */
 
 const STAGE_COPY = {
-  SAFETY_CHECK: { n: 1, title: "Make it safe", body: "The laptop is still on and hot. Decide what to do before you open it." },
+  SAFETY_CHECK: { n: 1, title: "Make it safe", body: "" },
   DEVICE_INSPECTION: {
     n: 2,
     title: "Inspect the device",
@@ -174,13 +203,18 @@ function Simulator({ mission, run }: { mission: Mission; run: MissionProgress })
   const { advance, inspect, answer, takeHint, reset } = useMissionStore.getState();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [xray, setXray] = useState(run.stage !== "SAFETY_CHECK");
+  const [tool, setTool] = useState<ToolId>("inspect");
+  const [teardown, setTeardown] = useState(0);
+  const device = useDevice();
 
   const repaired = run.answers.repair !== undefined && isCorrect(mission, "repair", run.answers.repair);
   const laptop: LaptopState = {
     xray,
-    dusty: !repaired,
-    cooled: repaired,
+    dusty: mission.visual.dusty && !repaired,
+    cooled: !mission.visual.hot || repaired,
     powered: (run.stage === "SAFETY_CHECK" && run.answers.safety === undefined) || repaired,
+    screen: repaired ? mission.screen.fixed : mission.screen.fault,
+    teardown,
   };
 
   // Stage side effects: open the panel for inspection, close it to show the post-repair test.
@@ -203,7 +237,19 @@ function Simulator({ mission, run }: { mission: Mission; run: MissionProgress })
     [inspect, mission.id, xray],
   );
 
-  const copy = STAGE_COPY[run.stage as keyof typeof STAGE_COPY];
+  const base = STAGE_COPY[run.stage as keyof typeof STAGE_COPY];
+  // Markers follow parts that are lifted out during the take-apart.
+  const hotspots = useMemo(() => {
+    const lift = (id: string): [number, number, number] =>
+      !xray ? [0, 0, 0] : id === "battery" && teardown >= 1 ? [0, 0.45, 0.9] : id === "fan" && teardown >= 2 ? [0, 0.55, 0] : [0, 0, 0];
+    return mission.hotspots.map((h) => {
+      const [dx, dy, dz] = lift(h.id);
+      if (!dx && !dy && !dz) return h;
+      const shift = (v: [number, number, number]): [number, number, number] => [v[0] + dx, v[1] + dy, v[2] + dz];
+      return { ...h, position: shift(h.position), camera: shift(h.camera) };
+    });
+  }, [mission.hotspots, xray, teardown]);
+  const copy = run.stage === "SAFETY_CHECK" ? { ...base, body: mission.safetyIntro } : base;
   const ready = canAdvance(run, mission);
   const score = computeScore(run, mission);
   const hotspotsVisible = xray && run.stage !== "SAFETY_CHECK";
@@ -223,16 +269,23 @@ function Simulator({ mission, run }: { mission: Mission; run: MissionProgress })
       <main className="grid w-full flex-1 gap-4 p-4 sm:px-8 lg:grid-cols-12 lg:gap-6 lg:px-12 lg:py-6">
         <div className="h-[55dvh] min-h-80 lg:sticky lg:top-22 lg:col-span-8 lg:h-[calc(100dvh-7rem)]">
           <DeviceViewer
-            asset={mission.model}
+            asset={device.model}
+            look={device.look}
             laptop={laptop}
-            hotspots={mission.hotspots}
+            hotspots={hotspots}
             hotspotsEnabled={hotspotsVisible}
             inspected={run.inspected}
             activeId={activeId}
             onSelect={select}
-            onToggleXray={() => setXray((v) => !v)}
+            onToggleXray={() => {
+              setXray((v) => !v);
+              setTeardown(0);
+            }}
             xrayLocked={run.stage === "SAFETY_CHECK"}
-            hud={<Readout laptop={laptop} />}
+            tool={tool}
+            onTool={setTool}
+            onTeardown={() => setTeardown((t) => (t + 1) % 3)}
+            hud={<Readout laptop={laptop} mission={mission} fixed={repaired} />}
           />
         </div>
 
@@ -262,6 +315,7 @@ function Simulator({ mission, run }: { mission: Mission; run: MissionProgress })
                 activeId={activeId}
                 canScore
                 panelOpen={xray}
+                tool={tool}
                 onSelect={select}
               />
             )}
@@ -288,9 +342,7 @@ function Simulator({ mission, run }: { mission: Mission; run: MissionProgress })
                 />
                 {run.answers.repair !== undefined && (
                   <p className="rounded-2xl bg-sunken p-4 text-sm leading-relaxed">
-                    {repaired
-                      ? "Post-repair test: after cleaning, the CPU holds 61°C under load and the fan runs quietly."
-                      : "The fault is still there. The laptop would keep overheating. Review the explanation above."}
+                    {repaired ? mission.postRepair.fixed : mission.postRepair.unresolved}
                   </p>
                 )}
               </>
@@ -362,34 +414,45 @@ function waitingCopy(run: MissionProgress, mission: Mission) {
 
 /* ---------- Live readout in the viewer ---------- */
 
-function Readout({ laptop }: { laptop: LaptopState }) {
-  const items = !laptop.powered
-    ? [{ icon: PlugZap, label: "Power", value: "Off and unplugged", tone: "fg" }]
-    : laptop.cooled
-      ? [
-          { icon: Thermometer, label: "CPU after cleaning", value: "61°C", tone: "ok" },
-          { icon: Fan, label: "Fan", value: "Quiet", tone: "fg" },
-        ]
-      : [
-          { icon: Thermometer, label: "CPU", value: "96°C", tone: "heat" },
-          { icon: Fan, label: "Fan", value: "Strained", tone: "fg" },
-        ];
+const ICONS: Record<ReadoutIcon, LucideIcon> = {
+  temp: Thermometer,
+  fan: Fan,
+  battery: BatteryLow,
+  power: PlugZap,
+  wifi: Wifi,
+  drive: HardDrive,
+  display: Monitor,
+  keyboard: Keyboard,
+  memory: MemoryStick,
+  liquid: Droplets,
+  hinge: Laptop,
+};
+
+function Readout({ laptop, mission, fixed }: { laptop: LaptopState; mission: Mission; fixed: boolean }) {
+  const items: Reading[] = !laptop.powered
+    ? [{ icon: "power", label: "Power", value: "Off and unplugged", tone: "neutral" }]
+    : fixed
+      ? mission.readout.fixed
+      : mission.readout.fault;
   return (
     <div className="flex flex-col items-end gap-2 sm:flex-row">
-      {items.map((it) => (
-        <div key={it.label} className="flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2 shadow-raised">
-          <it.icon className={clsx("size-4", it.tone === "heat" ? "text-heat" : it.tone === "ok" ? "text-ok" : "text-muted")} />
-          <span className="text-xs text-muted">{it.label}</span>
-          <span
-            className={clsx(
-              "font-mono text-sm font-semibold tabular-nums",
-              it.tone === "heat" ? "text-heat" : it.tone === "ok" ? "text-ok" : "text-fg",
-            )}
-          >
-            {it.value}
-          </span>
-        </div>
-      ))}
+      {items.map((it) => {
+        const Icon = ICONS[it.icon];
+        return (
+          <div key={it.label} className="flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2 shadow-raised">
+            <Icon className={clsx("size-4", it.tone === "bad" ? "text-heat" : it.tone === "ok" ? "text-ok" : "text-muted")} />
+            <span className="text-xs text-muted">{it.label}</span>
+            <span
+              className={clsx(
+                "font-mono text-sm font-semibold tabular-nums",
+                it.tone === "bad" ? "text-heat" : it.tone === "ok" ? "text-ok" : "text-fg",
+              )}
+            >
+              {it.value}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }

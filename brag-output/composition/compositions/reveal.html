@@ -1,0 +1,36 @@
+<template>
+  <style>
+@font-face{font-family:"Geist";src:url("assets/fonts/geist-latin-var.woff2") format("woff2");font-weight:100 900}
+@font-face{font-family:"Geist Mono";src:url("assets/fonts/geist-mono-latin-var.woff2") format("woff2");font-weight:100 900}
+#root{position:absolute;inset:0;background:#f6f7f9;overflow:hidden;font-family:"Geist",sans-serif;color:#080d1b}
+#rv-stack{position:absolute;left:0;top:0;width:1920px;height:1080px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px}
+#rv-lock{display:flex;align-items:center;gap:36px}
+#rv-mark{width:190px;height:190px}
+#rv-word{font-size:136px;font-weight:650;letter-spacing:-0.045em;line-height:1}
+#rv-word .l{display:inline-block}
+#rv-head{font-size:64px;font-weight:520;letter-spacing:-0.025em;color:#080d1b}
+#rv-head .w{display:inline-block}
+  </style>
+  <div id="root" data-composition-id="reveal" data-width="1920" data-height="1080">
+    <div id="rv-g" class="clip" data-start="0" data-duration="2.64" data-track-index="0"><div id="rv-stack"><div id="rv-lock"><svg id="rv-mark" viewBox="0 0 28 28" fill="none" overflow="visible">
+      <rect class="m-rect" x="3" y="7" width="16" height="11" rx="1.5" stroke="#080d1b" stroke-width="2" pathLength="100"/>
+      <path class="m-base" d="M1 21.5h20" stroke="#080d1b" stroke-width="2" stroke-linecap="round" pathLength="100"/>
+      <path class="m-lead" d="M13.5 12.5 19.5 6.5" stroke="#080d1b" stroke-width="1.5" stroke-linecap="round" pathLength="100"/>
+      <circle class="m-pin" cx="13.5" cy="12.5" r="1.5" fill="#080d1b"/>
+      <circle class="m-dot" cx="21.5" cy="5" r="4" fill="#22d3ee" stroke="#080d1b" stroke-width="1.5"/>
+    </svg><div id="rv-word"><span class="l">R</span><span class="l">e</span><span class="l">p</span><span class="l">a</span><span class="l">i</span><span class="l">r</span><span class="l">V</span><span class="l">e</span><span class="l">r</span><span class="l">s</span><span class="l">e</span></div></div><div id="rv-head"><span class="w">Learn</span> <span class="w">real-world</span> <span class="w">repair</span> <span class="w">skills</span> <span class="w">in</span> <span class="w">3D</span></div></div></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    
+    tl.fromTo("#rv-mark .m-rect", { strokeDasharray: "100 120", strokeDashoffset: 110 }, { strokeDashoffset: 0, duration: 0.4, ease: "power2.inOut" }, 0);
+    tl.fromTo("#rv-mark .m-base", { strokeDasharray: "100 120", strokeDashoffset: 110 }, { strokeDashoffset: 0, duration: 0.25, ease: "power2.out" }, 0.2);
+    tl.fromTo("#rv-mark .m-pin", { opacity: 0 }, { opacity: 1, duration: 0.08 }, 0.34);
+    tl.fromTo("#rv-mark .m-lead", { strokeDasharray: "100 120", strokeDashoffset: 110 }, { strokeDashoffset: 0, duration: 0.16, ease: "power2.out" }, 0.36);
+    tl.fromTo("#rv-mark .m-dot", { scale: 0, transformOrigin: "21.5px 5px" }, { scale: 1, duration: 0.4, ease: "expo.out" }, 0.5);
+    tl.fromTo("#rv-word .l", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.14, stagger: 0.03, ease: "power2.out" }, 0.12);
+    tl.fromTo("#rv-head .w", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.14, stagger: 0.05, ease: "power2.out" }, 0.22);
+    tl.to("#rv-stack", { scale: 6, opacity: 0, filter: "blur(14px)", duration: 0.36, ease: "power3.in" }, 2.27);
+    window.__timelines["reveal"] = tl;
+  </script>
+</template>

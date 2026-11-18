@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 const lesson = [
-  { min: 6, at: "Before class", t: "Students run Mission 001", d: "At home or in the lab. Only a browser, no account." },
+  { min: 6, at: "Before class", t: "Students run a mission", d: "At home or in the lab. Only a browser, no account." },
   { min: 10, at: "0:00", t: "Review the results together", d: "Which questions did people miss? The results page shows each answer with its explanation." },
   { min: 25, at: "0:10", t: "Open a real laptop", d: "Under supervision, find the fan, vents, and heatsink students already inspected in 3D." },
   { min: 10, at: "0:35", t: "Retry and compare", d: "Students run the mission again. Compare first and second scores." },
@@ -43,7 +43,7 @@ export default function EducatorsPage() {
             hands-on part.
           </p>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
-            <ButtonLink href="/mission/001" size="lg">
+            <ButtonLink href="/missions" size="lg">
               Try it as a student <ArrowRight className="size-4" />
             </ButtonLink>
             <ButtonLink href="#lesson" variant="plain" className="px-0 text-base">
@@ -58,7 +58,7 @@ export default function EducatorsPage() {
               <ScoreCardPreview />
             </div>
           </div>
-          <p className="mt-4 text-sm text-dim">Screens from Mission 001: a student&apos;s answer and their results card.</p>
+          <p className="mt-4 text-sm text-dim">Screens from the overheating mission: a student&apos;s answer and their results card.</p>
         </div>
       </Container>
 
@@ -83,7 +83,7 @@ export default function EducatorsPage() {
       <Section
         id="lesson"
         title="A sample 45-minute class"
-        intro="One way to use Mission 001. The bar shows how the time splits."
+        intro="One way to use a mission. The bar shows how the time splits."
       >
         <div className="mb-10 flex h-3 overflow-hidden rounded-full" aria-hidden>
           {lesson.map((l, i) => (
@@ -133,7 +133,7 @@ export default function EducatorsPage() {
       </Section>
 
       {/* Curriculum fit */}
-      <Section title="What Mission 001 covers" intro="Map it to your syllabus.">
+      <Section title="What the overheating mission covers" intro="Map it to your syllabus.">
         <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
           <ul className="divide-y divide-line border-y border-line">
             {mission.objectives.map((o) => (
@@ -165,7 +165,7 @@ export default function EducatorsPage() {
             ["Can it replace bench practice?", "No. It prepares students for it. Physical repair still needs hands-on training and supervision."],
             ["Is the score a certification?", "No. It's learning feedback from fixed rules: same answers, same score."],
             ["How accurate is the 3D model?", "The outside comes from Aholo Lux3D. The internal parts are labeled teaching illustrations, not an exact copy of one model."],
-            ["What devices are coming?", "Phones and desktop PCs are planned. Mission 001 is the only one available today."],
+            ["How many missions are there?", "Twelve laptop missions today, from overheating to liquid damage. Phones and desktop PCs are planned."],
           ].map(([q, a]) => (
             <details key={q} className="group border-b border-line py-5">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-medium">

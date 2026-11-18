@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+@font-face{font-family:"Geist";src:url("assets/fonts/geist-latin-var.woff2") format("woff2");font-weight:100 900}
+@font-face{font-family:"Geist Mono";src:url("assets/fonts/geist-mono-latin-var.woff2") format("woff2");font-weight:100 900}
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #f6f7f9; }
+      #root { width: 100%; height: 100%; position: relative; font-family: "Geist", sans-serif; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="24" data-width="1920" data-height="1080">
+      <div id="ticket" data-composition-id="ticket" data-composition-src="compositions/ticket.html" data-start="0" data-duration="3.7" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="reveal" data-composition-id="reveal" data-composition-src="compositions/reveal.html" data-start="3.7" data-duration="2.64" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="inspect" data-composition-id="inspect" data-composition-src="compositions/inspect.html" data-start="6.34" data-duration="6.31" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="decide" data-composition-id="decide" data-composition-src="compositions/decide.html" data-start="12.65" data-duration="5.26" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="score" data-composition-id="score" data-composition-src="compositions/score.html" data-start="17.91" data-duration="2.69" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="endcard" data-composition-id="endcard" data-composition-src="compositions/endcard.html" data-start="20.6" data-duration="3.4" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <audio id="music" class="clip" src="assets/music/happy-beats-business-moves-vol-11-by-ende-dot-app.mp3" data-start="0" data-duration="24" data-volume="0.5" data-fade-in="0.3" data-fade-out="1.2" data-track-index="4"></audio>
+      <audio id="sfx-reveal" class="clip" src="assets/sfx/impact/impactSoft_medium_001.ogg" data-start="3.733" data-duration="0.18" data-volume="0.7" data-track-index="5"></audio>
+      <audio id="sfx-click-fan" class="clip" src="assets/sfx/ui/click2.ogg" data-start="7.087" data-duration="0.06" data-volume="0.9" data-track-index="5"></audio>
+      <audio id="sfx-click-fix" class="clip" src="assets/sfx/ui/click2.ogg" data-start="14.163" data-duration="0.06" data-volume="0.9" data-track-index="5"></audio>
+      <audio id="sfx-score" class="clip" src="assets/sfx/impact/impactSoft_medium_003.ogg" data-start="17.943" data-duration="0.14" data-volume="0.6" data-track-index="5"></audio>
+      <audio id="sfx-logo" class="clip" src="assets/sfx/impact/impactBell_heavy_000.ogg" data-start="21.133" data-duration="1.48" data-volume="0.45" data-track-index="5"></audio>
+    </div>
+    <script>
+      // Audio-reactive: per-frame music RMS (pre-extracted, assets/audio-data.json) drives --energy.
+      const ENERGY = [0.78,0.75,0.49,0.44,0.37,0.33,0.34,0.36,0.48,0.44,0.45,0.43,0.44,0.37,0.34,0.33,1,0.61,0.42,0.33,0.32,0.31,0.3,0.29,0.32,0.32,0.3,0.28,0.27,0.27,0.26,0.42,0.88,0.56,0.42,0.39,0.31,0.29,0.27,0.28,0.28,0.27,0.26,0.26,0.35,0.31,0.25,0.67,0.77,0.55,0.4,0.31,0.24,0.24,0.21,0.35,0.49,0.44,0.42,0.39,0.31,0.22,0.18,0.74,0.71,0.55,0.41,0.35,0.35,0.33,0.33,0.44,0.39,0.35,0.33,0.27,0.27,0.25,0.24,0.81,0.69,0.41,0.33,0.29,0.32,0.29,0.32,0.25,0.26,0.24,0.25,0.25,0.27,0.24,0.28,0.84,0.64,0.47,0.39,0.28,0.29,0.26,0.25,0.28,0.22,0.2,0.19,0.3,0.24,0.19,0.49,0.86,0.55,0.43,0.28,0.18,0.2,0.16,0.27,0.4,0.38,0.35,0.3,0.29,0.2,0.17,0.69,0.67,0.53,0.46,0.37,0.38,0.37,0.34,0.44,0.48,0.43,0.42,0.4,0.38,0.32,0.31,0.77,0.59,0.43,0.38,0.35,0.39,0.37,0.42,0.43,0.34,0.29,0.28,0.29,0.31,0.29,0.25,0.84,0.64,0.46,0.47,0.31,0.31,0.31,0.26,0.3,0.3,0.26,0.22,0.31,0.28,0.24,0.36,0.92,0.66,0.39,0.38,0.2,0.22,0.21,0.27,0.39,0.39,0.37,0.33,0.33,0.22,0.16,0.53,0.82,0.51,0.48,0.34,0.35,0.34,0.32,0.41,0.47,0.46,0.46,0.38,0.32,0.31,0.28,0.76,0.72,0.38,0.33,0.36,0.28,0.27,0.24,0.34,0.31,0.31,0.3,0.31,0.37,0.31,0.29,0.74,0.73,0.41,0.37,0.31,0.22,0.21,0.2,0.24,0.32,0.26,0.28,0.31,0.37,0.32,0.3,0.9,0.66,0.49,0.3,0.33,0.23,0.3,0.22,0.37,0.3,0.31,0.35,0.19,0.2,0.16,0.39,0.83,0.66,0.43,0.39,0.36,0.35,0.36,0.4,0.48,0.41,0.4,0.39,0.39,0.33,0.27,0.59,0.9,0.41,0.38,0.32,0.33,0.31,0.29,0.29,0.35,0.34,0.33,0.3,0.3,0.28,0.26,0.7,0.73,0.55,0.43,0.34,0.32,0.29,0.25,0.28,0.29,0.29,0.26,0.31,0.38,0.34,0.38,0.8,0.66,0.47,0.43,0.29,0.26,0.23,0.22,0.42,0.47,0.42,0.37,0.34,0.24,0.22,0.21,0.89,0.62,0.48,0.41,0.38,0.37,0.38,0.38,0.5,0.43,0.37,0.35,0.31,0.28,0.27,0.41,0.86,0.48,0.41,0.27,0.33,0.32,0.29,0.3,0.29,0.26,0.26,0.23,0.29,0.27,0.28,0.58,0.82,0.52,0.48,0.37,0.26,0.27,0.25,0.28,0.3,0.22,0.19,0.22,0.3,0.23,0.18,0.75,0.71,0.46,0.38,0.25,0.22,0.19,0.19,0.33,0.43,0.37,0.33,0.33,0.23,0.2,0.17,0.81,0.62,0.55,0.42,0.41,0.36,0.35,0.37,0.51,0.47,0.44,0.43,0.36,0.35,0.33,0.36,0.79,0.51,0.42,0.32,0.4,0.33,0.35,0.34,0.32,0.29,0.27,0.26,0.28,0.26,0.28,0.51,0.82,0.56,0.48,0.4,0.35,0.32,0.32,0.3,0.3,0.27,0.25,0.24,0.34,0.29,0.23,0.7,0.8,0.47,0.36,0.31,0.26,0.2,0.21,0.31,0.45,0.39,0.41,0.41,0.27,0.21,0.16,0.26,0.32,0.33,0.31,0.36,0.37,0.35,0.47,0.49,0.51,0.51,0.44,0.35,0.37,0.37,0.36,0.34,0.33,0.29,0.28,0.35,0.33,0.31,0.33,0.29,0.3,0.28,0.24,0.3,0.32,0.31,0.35,0.37,0.39,0.28,0.33,0.2,0.2,0.11,0.11,0.15,0.09,0.08,0.07,0.27,0.2,0.16,0.17,0.2,0.17,0.15,0.12,0.16,0.16,0.14,0.16,0.19,0.2,0.2,0.2,0.18,0.2,0.16,0.79,0.59,0.44,0.47,0.43,0.41,0.4,0.39,0.49,0.56,0.49,0.49,0.43,0.39,0.37,0.34,0.86,0.55,0.39,0.39,0.45,0.49,0.45,0.38,0.39,0.39,0.38,0.37,0.38,0.42,0.38,0.46,0.84,0.6,0.5,0.4,0.34,0.36,0.35,0.29,0.35,0.35,0.36,0.37,0.52,0.5,0.42,0.62,0.73,0.49,0.38,0.34,0.32,0.33,0.33,0.32,0.61,0.58,0.52,0.54,0.5,0.48,0.41,0.8,0.63,0.45,0.37,0.34,0.36,0.42,0.37,0.44,0.54,0.48,0.36,0.33,0.35,0.32,0.34,0.8,0.59,0.42,0.32,0.42,0.47,0.48,0.44,0.4,0.39,0.37,0.33,0.35,0.33,0.32,0.33,0.82,0.64,0.47,0.42,0.35,0.39,0.41,0.37,0.33,0.36,0.35,0.33,0.49,0.5,0.39,0.44,0.8,0.62,0.38,0.38,0.33,0.36,0.34,0.34,0.53,0.47,0.48,0.41,0.43,0.44,0.39,0.71,0.66,0.4,0.41,0.33,0.35,0.34,0.36,0.46,0.56,0.55,0.5,0.47,0.45,0.42,0.38,0.79,0.55,0.29,0.38,0.39,0.51,0.47,0.42,0.44,0.42,0.41,0.37,0.38,0.39,0.37,0.36,0.78,0.62,0.47,0.46,0.37,0.38,0.38,0.37,0.38,0.41,0.43,0.4,0.46,0.47,0.43,0.4,0.88,0.54,0.41,0.38,0.38,0.33,0.31,0.32,0.58,0.6,0.52,0.54,0.52,0.44,0.4,0.54,0.75,0.46,0.41,0.42,0.42,0.39,0.45,0.37,0.49,0.51,0.46,0.45,0.42,0.36,0.38,0.72,0.66,0.41,0.41,0.3,0.52,0.39,0.41,0.33,0.43,0.4,0.4,0.34,0.41,0.4,0.33];
+      const tl = gsap.timeline({ paused: true });
+      const rootEl = document.getElementById("root");
+      for (let f = 0; f < ENERGY.length && f / 30 < 24; f++) {
+        tl.call((v) => rootEl.style.setProperty("--energy", v), [ENERGY[f]], f / 30);
+      }
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

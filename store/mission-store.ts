@@ -4,12 +4,16 @@ import { useMemo } from "react";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { getMission } from "@/data/missions";
+import { DEFAULT_DEVICE_ID, getDevice } from "@/data/devices";
 import * as engine from "@/lib/mission-engine";
 import type { MissionProgress, QuestionKind } from "@/lib/mission-engine";
 
 interface MissionStore {
   runs: Record<string, MissionProgress>;
+  /** Laptop the learner put on the bench. Shared by every mission. */
+  deviceId: string;
   hydrated: boolean;
+  setDevice: (deviceId: string) => void;
   /** Ensures a run exists and moves NOT_STARTED to INTRODUCTION. */
   load: (missionId: string) => void;
   advance: (missionId: string) => void;
@@ -50,7 +54,9 @@ export const useMissionStore = create<MissionStore>()(
 
       return {
         runs: {},
+        deviceId: DEFAULT_DEVICE_ID,
         hydrated: false,
+        setDevice: (deviceId) => set({ deviceId: getDevice(deviceId).id }),
         load: (id) => update(id, engine.openBriefing),
         advance: (id) => {
           const m = getMission(id);
@@ -78,7 +84,7 @@ export const useMissionStore = create<MissionStore>()(
       name: "repairverse-progress",
       version: 1,
       storage: safeStorage(),
-      partialize: (s) => ({ runs: s.runs }),
+      partialize: (s) => ({ runs: s.runs, deviceId: s.deviceId }),
       // Deferred: with sync storage this runs while the store is still being created.
       onRehydrateStorage: () => () => {
         queueMicrotask(() => useMissionStore.setState({ hydrated: true }));
@@ -96,4 +102,10 @@ export function useMissionRun(missionId: string): MissionProgress | null {
     if (!hydrated || !mission) return null;
     return engine.sanitizeProgress(raw, mission);
   }, [hydrated, raw, missionId]);
+}
+
+/** The selected device, falling back to the default for unknown or stale ids. */
+export function useDevice() {
+  const id = useMissionStore((s) => s.deviceId);
+  return getDevice(id);
 }

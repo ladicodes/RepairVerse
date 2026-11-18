@@ -2,9 +2,10 @@
 
 import { Component, Suspense, type ReactNode } from "react";
 import type { ModelAsset } from "@/data/missions";
+import type { DeviceLook } from "@/data/devices";
 import { Internals } from "./Internals";
 import { Lux3DShell, ProceduralShell } from "./Shells";
-import type { ScreenMode } from "./textures";
+import type { ScreenInput, ScreenSpec } from "./textures";
 import type { AssetStatus } from "./asset";
 
 class ModelBoundary extends Component<{ fallback: ReactNode; onError: () => void; children: ReactNode }, { failed: boolean }> {
@@ -25,6 +26,10 @@ export interface LaptopState {
   dusty: boolean;
   powered: boolean;
   cooled: boolean;
+  /** Mission-specific display content while powered. Defaults to the overheating monitor. */
+  screen?: ScreenSpec;
+  /** Take-apart step while the cover is off. */
+  teardown?: number;
 }
 
 export function LaptopModel({
@@ -33,15 +38,18 @@ export function LaptopModel({
   onLoadError,
   state,
   showInternals = true,
+  look,
 }: {
   asset: ModelAsset;
   status: AssetStatus;
   onLoadError: () => void;
   state: LaptopState;
   showInternals?: boolean;
+  /** Case and keyboard style for the procedural placeholder. */
+  look?: DeviceLook;
 }) {
-  const screen: ScreenMode = !state.powered ? "off" : state.cooled ? "cool" : "hot";
-  const fallback = <ProceduralShell xray={state.xray} screen={screen} />;
+  const screen: ScreenInput = !state.powered ? "off" : (state.screen ?? (state.cooled ? "cool" : "hot"));
+  const fallback = <ProceduralShell xray={state.xray} screen={screen} look={look} />;
 
   return (
     <group>
@@ -54,7 +62,8 @@ export function LaptopModel({
       ) : status === "checking" ? null : (
         fallback
       )}
-      {showInternals && <Internals dusty={state.dusty} powered={state.powered} cooled={state.cooled} xray={state.xray} />}
+      {/* A generated shell has its own solid base, so the illustration only shows with the panel open. */}
+      {showInternals && (state.xray || status !== "lux3d") && <Internals dusty={state.dusty} powered={state.powered} cooled={state.cooled} xray={state.xray} teardown={state.teardown} />}
     </group>
   );
 }

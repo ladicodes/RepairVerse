@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import clsx from "clsx";
 import { missions } from "@/data/missions";
+import { useDevice } from "@/store/mission-store";
 
 const DeviceViewer = dynamic(() => import("@/components/simulator/DeviceViewer"), {
   ssr: false,
@@ -20,12 +21,14 @@ const mission = missions["001"];
 export function PartsExplorer() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [xray, setXray] = useState(true);
+  const device = useDevice();
 
   return (
     <div className="grid gap-6 lg:grid-cols-12">
       <div className="h-96 sm:h-120 lg:col-span-7 lg:h-152">
         <DeviceViewer
-          asset={mission.model}
+          asset={device.model}
+          look={device.look}
           laptop={{ xray, dusty: true, powered: false, cooled: false }}
           hotspots={mission.hotspots}
           hotspotsEnabled={xray}
